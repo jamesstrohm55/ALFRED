@@ -2,7 +2,7 @@
 
 > **All-Knowing Logical Facilitator for Reasoned Execution of Duties**
 
-A.L.F.R.E.D is a modular, intelligent, and voice-enabled personal assistant inspired by J.A.R.V.I.S. It integrates multiple AI technologies, APIs, and system commands to create a cohesive and interactive digital assistant for personal and professional productivity.
+A.L.F.R.E.D is a modular, intelligent, and voice-enabled personal assistant inspired by J.A.R.V.I.S. Completely powered by Python, it integrates multiple AI technologies, APIs, and system commands to create a cohesive and interactive digital assistant for personal and professional productivity.
 
 ---
 
