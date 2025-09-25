@@ -6,15 +6,12 @@ def handle_system_monitor_command(user_input):
     user_input = user_input.lower()
 
     keywords = [
-        "cpu",
-        "ram",
-        "memory",
-        "disk",
-        "uptime",
+        "system monitor",
         "system status",
         "how is the system",
         "system stats",
         "system information",
+        "check systems"
     ]
 
     if any(word in user_input for word in keywords):
