@@ -1,10 +1,19 @@
+import subprocess
 from core.voice import speak
 from core.listener import listen
 from core.brain import get_response
 from services.automation import run_command
 
+def boot_sequence():
+    try:
+        subprocess.run(["./boot.exe"], check=True)
+    except Exception as e:
+        speak("Boot sequence failed. Please check the system.")
+        raise e
+
 def main():
-    speak("Initializing systems. How may I assist you today?")
+    boot_sequence()
+    speak("Boot sequence successful. Initializing systems. How may I assist you today?")
     
     while True:
         command = listen()
