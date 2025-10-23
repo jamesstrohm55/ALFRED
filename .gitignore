@@ -4,5 +4,5 @@ __pycache__/
 .env
 credentials.json
 token.pickle
-command_log.txt
 data/
+command_log.txt
