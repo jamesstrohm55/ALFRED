@@ -2,7 +2,6 @@ import subprocess
 from core.voice import speak
 from core.listener import listen
 from core.brain import get_response
-from services.automation import run_command
 
 def boot_sequence():
     try:
@@ -14,7 +13,7 @@ def boot_sequence():
 def main():
     boot_sequence()
     speak("Boot sequence successful. Initializing systems. How may I assist you today?")
-    
+
     while True:
         command = listen()
         if not command:
@@ -23,12 +22,7 @@ def main():
         if "sleep" in command.lower():
             speak("Powering down. Goodbye, sir.")
             break
-        
-        system_response = run_command(command)
-        if system_response:
-            speak(system_response)
-            continue
-        
+
         response = get_response(command)
         speak(response)
 

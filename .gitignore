@@ -6,3 +6,4 @@ credentials.json
 token.pickle
 data/
 command_log.txt
+.claude/

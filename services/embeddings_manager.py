@@ -5,8 +5,8 @@ from config import OPENAI_KEY
 client = OpenAI(api_key=OPENAI_KEY)
 
 # Initialize ChromaDB Client
-chorma_client = chromadb.PersistentClient(path="./data/embeddings_db")
-collection = chorma_client.get_or_create_collection("alfred_memories")
+chroma_client = chromadb.PersistentClient(path="./data/embeddings_db")
+collection = chroma_client.get_or_create_collection("alfred_memories")
 
 def generate_embedding(text):
     response = client.embeddings.create(

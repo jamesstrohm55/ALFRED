@@ -4,10 +4,6 @@ def initialize_memory():
     """Ensure memory file exists and is loaded."""
     load_memory()  # Load memory to ensure the file exists
 
-def persist_memory():
-    """Save the current memory state to the file."""
-    save_memory()
-
 def handle_memory_commands(text):
     lower = text.lower().strip()
 
@@ -16,7 +12,6 @@ def handle_memory_commands(text):
         if " is " in fact:
             key, value = fact.split(" is ", 1)
             remember(key.strip(), value.strip())
-            persist_memory()
             key_for_reply = key.strip().replace("my ", "your ")
             return f"I'll remember that {key_for_reply} is {value.strip()}."
         return "Please phrase it like: 'Remember that [key] is [value]'."
@@ -31,7 +26,6 @@ def handle_memory_commands(text):
         key = lower.replace("forget", "").strip()
         success = forget(key)
         if success:
-            persist_memory()
             return f"I've forgotten everything about {key}."
         else:
             return f"I don't remember anything about {key} to forget."
