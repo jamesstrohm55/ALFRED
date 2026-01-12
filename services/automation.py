@@ -1,15 +1,9 @@
 import os
 import webbrowser
-import subprocess
 import datetime
-import time
 import difflib
 from pathlib import Path
-from service_commands.calendar_commands import handle_calendar_command
-from service_commands.system_monitor_commands import handle_system_monitor_command
-from service_commands.file_assistant_commands import handle_file_command
-from service_commands.weather_commands import handle_weather_command
-
+from config import MUSIC_PATH
 
 LOG_PATH = Path("command_log.txt")
 # === Individual Command Functions ===
@@ -27,8 +21,9 @@ def tell_time():
     return f"The current time is {now.strftime('%I:%M %p')}."
 
 def play_music():
-    music_path = "C:\\Users\\YourName\\Music\\song.mp3"  # change this
-    os.startfile(music_path)
+    if not MUSIC_PATH or not os.path.exists(MUSIC_PATH):
+        return "Music path not configured. Please set MUSIC_PATH in your .env file."
+    os.startfile(MUSIC_PATH)
     return "Playing your favorite track."
 
 def lock_computer():
@@ -48,39 +43,20 @@ command_map = {
 # === Fuzzy Matching Handler ===
 
 def run_command(user_input):
+    """Handle system-level commands (browser, VS Code, time, music, lock)."""
     user_input = user_input.lower()
     phrases = list(command_map.keys())
 
     # Log the raw input
     log_command(user_input)
 
-    #Check calendar module first
-    calendar_response = handle_calendar_command(user_input)
-    if calendar_response:
-        return calendar_response
-    
-    # Check system monitor commands
-    response = handle_system_monitor_command(user_input)
-    if response:
-        return response
-    
-    # Check file assistant commands
-    response = handle_file_command(user_input)
-    if response:
-        return response
-    
-    # Check weather commands
-    response = handle_weather_command(user_input)
-    if response:
-        return response
-
-    # Try to match to known commands
+    # Try to match to known system commands
     best_match = difflib.get_close_matches(user_input, phrases, n=1, cutoff=0.5)
     if best_match:
         command = best_match[0]
         log_command(user_input, matched_command=command)
         return command_map[command]()
-    
+
     return None
 
 

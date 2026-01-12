@@ -10,6 +10,22 @@ from service_commands.memory_commands import handle_memory_commands
 
 client = OpenAI(api_key=OPENAI_KEY)
 
+# Conversation history for context
+conversation_history = []
+MAX_HISTORY = 10
+
+SYSTEM_PROMPT = """You are A.L.F.R.E.D, an All Knowing Logical Facilitator for Reasoned Execution of Duties.
+You are a sophisticated AI assistant inspired by J.A.R.V.I.S. Be helpful, concise, and maintain a professional yet friendly demeanor.
+Address the user respectfully and provide accurate, thoughtful responses."""
+
+
+def add_to_history(role, content):
+    """Add a message to conversation history, maintaining max size."""
+    conversation_history.append({"role": role, "content": content})
+    if len(conversation_history) > MAX_HISTORY * 2:  # *2 for user+assistant pairs
+        conversation_history.pop(0)
+        conversation_history.pop(0)
+
 
 def get_response(text):
     lower = text.lower().strip()
@@ -28,11 +44,13 @@ def get_response(text):
         # System Level OS Commands
         response = run_command(lower)
         if response:
-            print(f"Command executed: {response}")
             return response
 
-        # General GPT Query with LLM fallback
-        return query_llm_fallback(lower)
+        # General GPT Query with LLM fallback and conversation context
+        add_to_history("user", text)
+        response = query_llm_with_context(text)
+        add_to_history("assistant", response)
+        return response
 
     except Exception as e:
         print(f"Error in get_response: {e}")
@@ -55,14 +73,21 @@ def handle_service_commands(text):
     return None
 
 
-def query_llm_fallback(text):
+def build_messages():
+    """Build messages list with system prompt and conversation history."""
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    messages.extend(conversation_history)
+    return messages
+
+
+def query_llm_with_context(text):
+    """Query LLM with conversation context and fallback support."""
+    messages = build_messages()
+
     try:
         completion = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are A.L.F.R.E.D, an All Knowing Logical Facilitator for Reasoned Execution of Duties."},
-                {"role": "user", "content": text}
-            ]
+            messages=messages
         )
         return completion.choices[0].message.content
 
@@ -76,10 +101,7 @@ def query_llm_fallback(text):
             )
             completion = openrouter_client.chat.completions.create(
                 model="anthropic/claude-3-sonnet",
-                messages=[
-                    {"role": "system", "content": "You are A.L.F.R.E.D, an All Knowing Logical Facilitator for Reasoned Execution of Duties."},
-                    {"role": "user", "content": text}
-                ]
+                messages=messages
             )
             return completion.choices[0].message.content
 
