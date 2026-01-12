@@ -2,6 +2,9 @@
 Command processing worker for handling ALFRED commands in a thread pool.
 """
 from PySide6.QtCore import QObject, QRunnable, Signal, Slot
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class WorkerSignals(QObject):
@@ -13,6 +16,47 @@ class WorkerSignals(QObject):
     speaking_started = Signal()           # Emitted when TTS begins
     speaking_finished = Signal()          # Emitted when TTS ends
     progress = Signal(str)                # Emitted for progress updates
+
+
+def execute_command(command: str) -> str:
+    """
+    Execute a command through automation or AI fallback.
+
+    Args:
+        command: The command text to process
+
+    Returns:
+        Response string from the command execution
+    """
+    # Import here to avoid circular imports
+    from core.brain import get_response
+    from services.automation import run_command
+
+    # Try automation command first
+    response = run_command(command)
+    if response:
+        return response
+
+    # Fall back to AI response
+    return get_response(command)
+
+
+def speak_with_signals(response: str, signals: WorkerSignals):
+    """
+    Speak a response and emit appropriate signals.
+
+    Args:
+        response: Text to speak
+        signals: WorkerSignals instance for emitting TTS state
+    """
+    try:
+        signals.speaking_started.emit()
+        from core.voice import speak
+        speak(response)
+        signals.speaking_finished.emit()
+    except (OSError, RuntimeError, ImportError) as e:
+        logger.warning(f"TTS failed: {e}")
+        signals.speaking_finished.emit()
 
 
 class CommandWorker(QRunnable):
@@ -41,22 +85,12 @@ class CommandWorker(QRunnable):
         self.signals.started.emit()
 
         try:
-            # Import here to avoid circular imports
-            from core.brain import get_response
-            from services.automation import run_command
-
             # Check for shutdown command first
             if "shutdown" in self.command.lower():
                 self.signals.finished.emit("Powering down.")
                 return
 
-            # Try system automation command first
-            system_response = run_command(self.command)
-            if system_response:
-                response = system_response
-            else:
-                # Fall back to AI response
-                response = get_response(self.command)
+            response = execute_command(self.command)
 
             # Handle cancelled state
             if self._is_cancelled:
@@ -67,26 +101,12 @@ class CommandWorker(QRunnable):
 
             # Then speak the response
             if self.speak_response and response:
-                self._speak_response(response)
+                speak_with_signals(response, self.signals)
 
         except Exception as e:
-            error_msg = f"Error processing command: {str(e)}"
-            self.signals.error.emit(error_msg)
+            logger.error(f"Command processing error: {e}", exc_info=True)
+            self.signals.error.emit(f"Error processing command: {str(e)}")
             self.signals.finished.emit(f"I encountered an error: {str(e)}")
-
-    def _speak_response(self, response: str):
-        """Speak the response using TTS."""
-        try:
-            self.signals.speaking_started.emit()
-
-            # Import voice module
-            from core.voice import speak
-            speak(response)
-
-            self.signals.speaking_finished.emit()
-        except Exception as e:
-            self.signals.error.emit(f"TTS error: {str(e)}")
-            self.signals.speaking_finished.emit()
 
     def cancel(self):
         """Cancel the worker (best effort)."""
@@ -119,30 +139,15 @@ class QuickActionWorker(QRunnable):
         self.signals.progress.emit(f"Executing {self.action_id}...")
 
         try:
-            # Import here to avoid circular imports
-            from core.brain import get_response
-            from services.automation import run_command
-
-            # Try automation command first
-            response = run_command(self.command)
-
-            if not response:
-                # Fall back to brain
-                response = get_response(self.command)
+            response = execute_command(self.command)
 
             # Emit response first (shows text in chat)
             self.signals.finished.emit(response)
 
             # Then speak the response
-            try:
-                self.signals.speaking_started.emit()
-                from core.voice import speak
-                speak(response)
-                self.signals.speaking_finished.emit()
-            except Exception:
-                self.signals.speaking_finished.emit()
+            speak_with_signals(response, self.signals)
 
         except Exception as e:
-            error_msg = f"Quick action error: {str(e)}"
-            self.signals.error.emit(error_msg)
+            logger.error(f"Quick action error ({self.action_id}): {e}", exc_info=True)
+            self.signals.error.emit(f"Quick action error: {str(e)}")
             self.signals.finished.emit(f"Failed to execute {self.action_id}")

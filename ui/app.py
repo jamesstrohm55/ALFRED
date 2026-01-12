@@ -16,6 +16,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def main():
@@ -45,8 +48,10 @@ def main():
     try:
         from core.voice import speak
         speak("Graphical interface loaded, sir.")
-    except Exception:
-        pass  # Voice not available, continue silently
+    except ImportError as e:
+        logger.warning(f"Voice module not available: {e}")
+    except (OSError, RuntimeError) as e:
+        logger.warning(f"Voice playback failed: {e}")
 
     # Show window
     window.show()

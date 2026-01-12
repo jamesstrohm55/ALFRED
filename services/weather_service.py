@@ -1,16 +1,22 @@
 import requests
 from config import WEATHER_API_KEY
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 API_KEY = WEATHER_API_KEY
 
 def get_location_from_ip():
+    """Get user's location from IP address for weather lookups."""
     try:
-        response = requests.get("http://ip-api.com/json/")
+        response = requests.get("http://ip-api.com/json/", timeout=5)
         data = response.json()
         if data["status"] == "success":
             return data["city"], data["country"]
-    except Exception:
-        pass
+    except requests.RequestException as e:
+        logger.warning(f"Could not determine location from IP: {e}")
+    except (KeyError, ValueError) as e:
+        logger.warning(f"Invalid location response: {e}")
     return None
 
 def get_weather(location):
