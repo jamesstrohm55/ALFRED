@@ -8,17 +8,22 @@ A.L.F.R.E.D is a modular, intelligent, and voice-enabled personal assistant insp
 
 ## Features
 
-- **Voice Interaction**: Speech synthesis with ElevenLabs (text fallback if credits are exhausted)
+### Core Capabilities
+- **Voice Interaction**: Speech recognition and synthesis with ElevenLabs (pyttsx3 offline fallback)
 - **LLM-Powered Conversations**: Multi-layered LLM fallback (OpenAI, OpenRouter, Claude)
-- **Memory System**: Store, recall, forget, and list facts about the user with semantic search
+- **Memory System**: Store, recall, forget, and list facts with semantic search (ChromaDB)
 - **System Monitoring**: Real-time CPU, RAM, Disk usage, uptime, and OS info
-- **Weather Reports**: Get weather updates based on your current location
-- **Calendar Management**: Integrate with Google Calendar to create and retrieve events
-- **File Assistant**: Search, open, and delete files via voice/text commands
-- **GUI Overlay**: Floating system monitor overlay
+- **Weather Reports**: Get weather updates based on your location
+- **Calendar Management**: Google Calendar integration for events
+- **File Assistant**: Search, open, and delete files via voice/text
 - **System Automation**: Lock system, open apps, play music, shutdown
-- **Command Logging**: Logs all commands to `command_log.txt`
-- **Text Fallback Mode**: Automatically switches to text if microphone is not detected
+
+### Modern GUI (PySide6)
+- **Chat Interface**: Modern chat bubbles with timestamps
+- **Voice Waveform Visualizer**: Real-time audio visualization for input/output
+- **Quick Action Tiles**: One-click buttons for common commands
+- **System Dashboard**: Live charts for CPU, RAM, and Disk with 60-second history
+- **Dark Theme**: JARVIS-inspired cyan/dark aesthetic
 
 ---
 
@@ -27,47 +32,57 @@ A.L.F.R.E.D is a modular, intelligent, and voice-enabled personal assistant insp
 ```
 ALFRED/
 │
-├── core/                        # Voice & brain logic
-│   ├── __init__.py
-│   ├── brain.py                 # Command routing & LLM integration
-│   ├── listener.py              # Speech recognition
-│   ├── personality.py           # Personality traits
-│   └── voice.py                 # Text-to-speech (ElevenLabs)
+├── core/                           # Voice & brain logic
+│   ├── brain.py                    # Command routing & LLM integration
+│   ├── listener.py                 # Speech recognition
+│   ├── personality.py              # Personality traits
+│   └── voice.py                    # Text-to-speech (ElevenLabs + pyttsx3)
 │
-├── memory/                      # Persistent memory system
-│   └── memory_manager.py        # JSON-based memory storage
+├── memory/                         # Persistent memory system
+│   └── memory_manager.py           # JSON + ChromaDB storage
 │
-├── service_commands/            # Modular command handlers
+├── service_commands/               # Modular command handlers
 │   ├── calendar_commands.py
 │   ├── file_assistant_commands.py
 │   ├── memory_commands.py
 │   ├── system_monitor_commands.py
 │   └── weather_commands.py
 │
-├── services/                    # System & external services
-│   ├── automation.py            # System commands (browser, lock, etc.)
-│   ├── calendar_service.py      # Google Calendar API
-│   ├── embeddings_manager.py    # ChromaDB vector storage
-│   ├── file_assistant.py        # File operations
-│   ├── system_monitor.py        # System stats
-│   └── weather_service.py       # OpenWeather API
+├── services/                       # System & external services
+│   ├── automation.py               # System commands
+│   ├── calendar_service.py         # Google Calendar API
+│   ├── embeddings_manager.py       # ChromaDB vector storage
+│   ├── file_assistant.py           # File operations
+│   ├── system_monitor.py           # System stats
+│   └── weather_service.py          # OpenWeather API
 │
-├── ui/                          # GUI components
-│   ├── gui.py
-│   └── system_overlay.py
+├── ui/                             # GUI components (PySide6)
+│   ├── app.py                      # Application entry point
+│   ├── main_window.py              # Main window
+│   ├── signals.py                  # Global Qt signals
+│   ├── widgets/                    # UI widgets
+│   │   ├── chat_widget.py          # Chat bubbles
+│   │   ├── waveform_widget.py      # Audio visualizer
+│   │   ├── quick_actions.py        # Action tiles
+│   │   ├── system_dashboard.py     # System charts
+│   │   └── input_bar.py            # Text/voice input
+│   ├── threads/                    # Background workers
+│   │   ├── audio_thread.py         # Microphone capture
+│   │   ├── command_worker.py       # Command processing
+│   │   └── system_monitor_thread.py
+│   └── styles/                     # Theming
+│       ├── colors.py               # Color palette
+│       └── dark_theme.py           # QSS stylesheet
 │
-├── utils/                       # Utility functions
-│   └── logger.py
+├── data/                           # Data storage (gitignored)
+│   ├── memory.json                 # Persistent memory
+│   └── embeddings_db/              # ChromaDB database
 │
-├── data/                        # Data storage (gitignored)
-│   ├── memory.json              # Persistent memory
-│   └── embeddings_db/           # ChromaDB vector database
-│
-├── .env                         # Environment variables (gitignored)
-├── config.py                    # Configuration loader
-├── main.py                      # Application entry point
-├── requirements.txt             # Python dependencies
-└── README.md                    # Project documentation
+├── .env                            # Environment variables (gitignored)
+├── config.py                       # Configuration loader
+├── main.py                         # CLI entry point
+├── requirements.txt                # Python dependencies
+└── README.md
 ```
 
 ---
@@ -127,9 +142,44 @@ WEATHER_API_KEY=your_openweather_api_key
 
 ### 6. Run Application
 
+**GUI Mode (Recommended):**
+```bash
+python -m ui.app
+```
+
+**CLI Mode:**
 ```bash
 python main.py
 ```
+
+---
+
+## GUI Overview
+
+The modern GUI features:
+
+| Component | Description |
+|-----------|-------------|
+| **Chat Area** | Messages displayed as chat bubbles with timestamps |
+| **Input Bar** | Text input with send button and microphone button |
+| **Waveform Visualizer** | Dual waveforms showing input (mic) and output (TTS) |
+| **System Dashboard** | Live CPU, RAM, Disk charts with 60s history |
+| **Quick Actions** | 10 tile buttons for common commands |
+
+### Quick Action Buttons
+
+| Button | Command |
+|--------|---------|
+| System | Check system status |
+| Weather | Get current weather |
+| Calendar | View upcoming events |
+| Time | Get current time |
+| VS Code | Launch VS Code |
+| Browser | Open web browser |
+| Add Event | Create calendar event |
+| Find File | Search for files |
+| Lock | Lock workstation |
+| Music | Play music |
 
 ---
 
@@ -151,20 +201,21 @@ python main.py
 | "Find resume" | Search for files |
 | "System status" | Get CPU/RAM/Disk stats |
 
-If no microphone is detected, the system prompts for text input.
-
 ---
 
 ## Roadmap
 
-- [ ] Browser-based dashboard
+- [x] Modern GUI with PySide6
+- [x] Voice waveform visualization
+- [x] Quick action tiles
+- [x] System dashboard with charts
+- [x] Chat bubble interface
+- [x] Offline TTS fallback (pyttsx3)
 - [ ] Email integration
 - [ ] Smart notification system
 - [ ] Advanced file manager with suggestions
 - [ ] Auto-pilot mode with multi-step reasoning
 - [ ] Emotional recognition and response adaptation
-- [ ] Conversation context (multi-turn conversations)
-- [ ] Offline TTS fallback (pyttsx3)
 
 ---
 
