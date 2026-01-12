@@ -2,6 +2,9 @@ import pyttsx3
 import numpy as np
 from elevenlabs import ElevenLabs, play, VoiceSettings
 from config import ELEVENLABS_KEY, ALFRED_VOICE_ID, VOICE_RATE
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 # Flag to track if GUI signals are available
 _gui_signals_available = False
@@ -29,8 +32,9 @@ def _emit_audio_data(audio_bytes):
             # Convert bytes to numpy array for visualization
             audio_array = np.frombuffer(audio_bytes, dtype=np.int16).astype(np.float32)
             _gui_signals.output_audio_data.emit(audio_array)
-        except Exception:
-            pass  # Silently ignore visualization errors
+        except (ValueError, RuntimeError) as e:
+            # Visualization errors are non-critical, log at debug level
+            logger.debug(f"Audio visualization error: {e}")
 
 # Initialize ElevenLabs client
 elevenlabs_client = None
@@ -63,8 +67,8 @@ def speak(text):
     if _gui_signals_available and _gui_signals:
         try:
             _gui_signals.speaking_started.emit()
-        except Exception:
-            pass
+        except RuntimeError as e:
+            logger.debug(f"Could not emit speaking_started signal: {e}")
 
     # Try ElevenLabs first (premium voice)
     if elevenlabs_client:
@@ -104,5 +108,5 @@ def _emit_speaking_finished():
     if _gui_signals_available and _gui_signals:
         try:
             _gui_signals.speaking_finished.emit()
-        except Exception:
-            pass
+        except RuntimeError as e:
+            logger.debug(f"Could not emit speaking_finished signal: {e}")

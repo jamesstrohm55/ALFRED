@@ -74,9 +74,15 @@ ALFRED/
 │       ├── colors.py               # Color palette
 │       └── dark_theme.py           # QSS stylesheet
 │
+├── utils/                          # Utility modules
+│   └── logger.py                   # Centralized logging system
+│
 ├── data/                           # Data storage (gitignored)
 │   ├── memory.json                 # Persistent memory
 │   └── embeddings_db/              # ChromaDB database
+│
+├── logs/                           # Application logs (auto-created)
+│   └── alfred_YYYYMMDD.log         # Daily log files
 │
 ├── .env                            # Environment variables (gitignored)
 ├── config.py                       # Configuration loader
@@ -197,7 +203,8 @@ The modern GUI features:
 | "Open VS Code" | Launch VS Code |
 | "Lock computer" | Lock workstation |
 | "What's on my calendar?" | List upcoming events |
-| "Create an event" | Add calendar event |
+| "Add meeting Team standup tomorrow at 10am for 1 hour" | Add calendar event |
+| "Schedule event Doctor appointment on Friday at 2pm" | Add calendar event |
 | "Find resume" | Search for files |
 | "System status" | Get CPU/RAM/Disk stats |
 
@@ -211,6 +218,11 @@ The modern GUI features:
 - [x] System dashboard with charts
 - [x] Chat bubble interface
 - [x] Offline TTS fallback (pyttsx3)
+- [x] Centralized logging system
+- [x] Thread-safe conversation history
+- [x] Optimized system monitoring (non-blocking CPU measurement)
+- [x] Natural language calendar commands
+- [x] File search with path validation and cancellation
 - [ ] Email integration
 - [ ] Smart notification system
 - [ ] Advanced file manager with suggestions

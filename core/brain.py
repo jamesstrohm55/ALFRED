@@ -1,3 +1,4 @@
+import threading
 from openai import OpenAI
 from config import OPENAI_KEY, OPENROUTER_API_KEY
 from memory.memory_manager import remember, recall, forget, list_memory, semantic_search_memory
@@ -7,11 +8,15 @@ from service_commands.weather_commands import handle_weather_command
 from service_commands.file_assistant_commands import handle_file_command
 from service_commands.system_monitor_commands import handle_system_monitor_command
 from service_commands.memory_commands import handle_memory_commands
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 client = OpenAI(api_key=OPENAI_KEY)
 
-# Conversation history for context
-conversation_history = []
+# Thread-safe conversation history
+_history_lock = threading.Lock()
+_conversation_history = []
 MAX_HISTORY = 10
 
 SYSTEM_PROMPT = """You are A.L.F.R.E.D, an All Knowing Logical Facilitator for Reasoned Execution of Duties.
@@ -20,11 +25,12 @@ Address the user respectfully and provide accurate, thoughtful responses."""
 
 
 def add_to_history(role, content):
-    """Add a message to conversation history, maintaining max size."""
-    conversation_history.append({"role": role, "content": content})
-    if len(conversation_history) > MAX_HISTORY * 2:  # *2 for user+assistant pairs
-        conversation_history.pop(0)
-        conversation_history.pop(0)
+    """Add a message to conversation history, maintaining max size (thread-safe)."""
+    with _history_lock:
+        _conversation_history.append({"role": role, "content": content})
+        # Trim history more efficiently - remove oldest pair if over limit
+        while len(_conversation_history) > MAX_HISTORY * 2:
+            _conversation_history.pop(0)
 
 
 def get_response(text):
@@ -53,7 +59,7 @@ def get_response(text):
         return response
 
     except Exception as e:
-        print(f"Error in get_response: {e}")
+        logger.error(f"Error in get_response: {e}", exc_info=True)
         return "Sorry, I encountered an error while processing your request."
 
 
@@ -74,9 +80,10 @@ def handle_service_commands(text):
 
 
 def build_messages():
-    """Build messages list with system prompt and conversation history."""
+    """Build messages list with system prompt and conversation history (thread-safe)."""
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-    messages.extend(conversation_history)
+    with _history_lock:
+        messages.extend(_conversation_history.copy())
     return messages
 
 
@@ -92,7 +99,7 @@ def query_llm_with_context(text):
         return completion.choices[0].message.content
 
     except Exception as e:
-        print(f"Primary LLM failed: {e}")
+        logger.warning(f"Primary LLM (GPT-4o-mini) failed: {e}")
         # Fallback to OpenRouter
         try:
             openrouter_client = OpenAI(
@@ -103,8 +110,9 @@ def query_llm_with_context(text):
                 model="anthropic/claude-3-sonnet",
                 messages=messages
             )
+            logger.info("Successfully used fallback LLM (Claude via OpenRouter)")
             return completion.choices[0].message.content
 
         except Exception as fallback_error:
-            print(f"Fallback LLM also failed: {fallback_error}")
+            logger.error(f"Fallback LLM also failed: {fallback_error}")
             return "Sorry, I couldn't process your request with any available models."
