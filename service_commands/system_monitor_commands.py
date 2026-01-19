@@ -1,11 +1,27 @@
-from services.system_monitor import get_system_stats
+"""
+System monitor command handler for A.L.F.R.E.D - processes system status queries.
+"""
+from __future__ import annotations
+
+from typing import Optional
+
+from services.system_monitor import get_system_stats, SystemStats
 from ui.system_overlay import launch_system_overlay
 
 
-def handle_system_monitor_command(user_input):
+def handle_system_monitor_command(user_input: str) -> Optional[str]:
+    """
+    Handle system monitoring commands.
+
+    Args:
+        user_input: The user's command text
+
+    Returns:
+        System status response or None if not a system command
+    """
     user_input = user_input.lower()
 
-    keywords = [
+    keywords: list[str] = [
         "system monitor",
         "system status",
         "how is the system",
@@ -15,16 +31,16 @@ def handle_system_monitor_command(user_input):
     ]
 
     if any(word in user_input for word in keywords):
-        stats = get_system_stats()
+        stats: SystemStats = get_system_stats()
 
-        response = (
-            f"🧠 CPU Usage: {stats['cpu_percent']} percent. "
-            f"💾 RAM: {stats['ram_used_gb']} out of {stats['ram_total_gb']} gigabytes used "
+        response: str = (
+            f"CPU Usage: {stats['cpu_percent']} percent. "
+            f"RAM: {stats['ram_used_gb']} out of {stats['ram_total_gb']} gigabytes used "
             f"({stats['ram_percent']} percent). "
-            f"📂 Disk: {stats['disk_used_gb']} out of {stats['disk_total_gb']} gigabytes used "
+            f"Disk: {stats['disk_used_gb']} out of {stats['disk_total_gb']} gigabytes used "
             f"({stats['disk_percent']} percent). "
-            f"🕒 Uptime: {stats['uptime']}. "
-            f"🖥️ OS: {stats['os']} {stats['os_version']}."
+            f"Uptime: {stats['uptime']}. "
+            f"OS: {stats['os']} {stats['os_version']}."
         )
 
         return response

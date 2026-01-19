@@ -1,24 +1,45 @@
+"""
+System monitoring service for A.L.F.R.E.D - provides real-time system statistics.
+"""
+from __future__ import annotations
+
 import psutil
 import platform
 import datetime
 import os
+from typing import Any, TypedDict
+
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 # Prime CPU percent calculation (first call with interval=None returns 0)
 # This allows subsequent calls to be non-blocking
-_cpu_initialized = False
+_cpu_initialized: bool = False
 
 
-def _get_disk_path():
+class SystemStats(TypedDict):
+    """Type definition for system statistics dictionary."""
+    cpu_percent: float
+    ram_percent: float
+    ram_used_gb: float
+    ram_total_gb: float
+    disk_percent: float
+    disk_used_gb: float
+    disk_total_gb: float
+    uptime: str
+    os: str
+    os_version: str
+
+
+def _get_disk_path() -> str:
     """Get the appropriate disk path for the current OS."""
     if platform.system() == "Windows":
         return os.environ.get("SystemDrive", "C:")
     return "/"
 
 
-def get_system_stats():
+def get_system_stats() -> SystemStats:
     """
     Get current system statistics (CPU, RAM, Disk, etc.).
 
@@ -33,7 +54,7 @@ def get_system_stats():
         _cpu_initialized = True
 
     # Non-blocking CPU measurement (uses delta since last call)
-    cpu = psutil.cpu_percent(interval=None)
+    cpu: float = psutil.cpu_percent(interval=None)
 
     ram = psutil.virtual_memory()
 
@@ -44,8 +65,8 @@ def get_system_stats():
         logger.warning(f"Could not get disk usage: {e}")
         disk = type('obj', (object,), {'percent': 0, 'used': 0, 'total': 0})()
 
-    uptime_seconds = (datetime.datetime.now() - datetime.datetime.fromtimestamp(psutil.boot_time())).total_seconds()
-    uptime = str(datetime.timedelta(seconds=int(uptime_seconds)))
+    uptime_seconds: float = (datetime.datetime.now() - datetime.datetime.fromtimestamp(psutil.boot_time())).total_seconds()
+    uptime: str = str(datetime.timedelta(seconds=int(uptime_seconds)))
 
     return {
         "cpu_percent": cpu,
