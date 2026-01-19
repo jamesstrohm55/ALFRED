@@ -11,6 +11,7 @@ dateparser
 psutil
 chromadb
 requests
+pytest
 
 # GUI Framework
 PySide6>=6.5.0

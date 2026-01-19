@@ -1,0 +1,123 @@
+2026-01-19 13:20:50 | ERROR    | alfred.core.brain:75 | Error in get_response: Test error
+Traceback (most recent call last):
+  File "E:\ALFRED\core\brain.py", line 54, in get_response
+    response: Optional[str] = handle_memory_commands(lower)
+                              ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Python313\Lib\unittest\mock.py", line 1169, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\unittest\mock.py", line 1173, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\unittest\mock.py", line 1228, in _execute_mock_call
+    raise effect
+Exception: Test error
+2026-01-19 13:25:40 | ERROR    | alfred.core.brain:75 | Error in get_response: Test error
+Traceback (most recent call last):
+  File "E:\ALFRED\core\brain.py", line 54, in get_response
+    response: Optional[str] = handle_memory_commands(lower)
+                              ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Python313\Lib\unittest\mock.py", line 1169, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\unittest\mock.py", line 1173, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\unittest\mock.py", line 1228, in _execute_mock_call
+    raise effect
+Exception: Test error
+2026-01-19 13:32:08 | ERROR    | alfred.core.brain:75 | Error in get_response: Test error
+Traceback (most recent call last):
+  File "E:\ALFRED\core\brain.py", line 54, in get_response
+    response: Optional[str] = handle_memory_commands(lower)
+                              ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Python313\Lib\unittest\mock.py", line 1169, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\unittest\mock.py", line 1173, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\unittest\mock.py", line 1228, in _execute_mock_call
+    raise effect
+Exception: Test error
+2026-01-19 13:32:09 | DEBUG    | alfred.services.weather_service:38 | Using cached location data
+2026-01-19 13:32:09 | INFO     | alfred.services.weather_service:113 | Weather cache cleared
+2026-01-19 13:32:09 | DEBUG    | alfred.services.weather_service:73 | Using cached weather data for TestCity
+2026-01-19 13:32:09 | INFO     | alfred.services.weather_service:113 | Weather cache cleared
+2026-01-19 13:32:09 | INFO     | alfred.services.weather_service:113 | Weather cache cleared
+2026-01-19 13:35:46 | ERROR    | alfred.core.brain:75 | Error in get_response: Test error
+Traceback (most recent call last):
+  File "E:\ALFRED\core\brain.py", line 54, in get_response
+    response: Optional[str] = handle_memory_commands(lower)
+                              ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Python313\Lib\unittest\mock.py", line 1169, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\unittest\mock.py", line 1173, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\unittest\mock.py", line 1228, in _execute_mock_call
+    raise effect
+Exception: Test error
+2026-01-19 13:35:46 | DEBUG    | alfred.services.weather_service:38 | Using cached location data
+2026-01-19 13:35:46 | INFO     | alfred.services.weather_service:113 | Weather cache cleared
+2026-01-19 13:35:46 | DEBUG    | alfred.services.weather_service:73 | Using cached weather data for TestCity
+2026-01-19 13:35:46 | INFO     | alfred.services.weather_service:113 | Weather cache cleared
+2026-01-19 13:35:46 | INFO     | alfred.services.weather_service:113 | Weather cache cleared
+2026-01-19 13:37:45 | ERROR    | alfred.core.brain:75 | Error in get_response: Test error
+Traceback (most recent call last):
+  File "E:\ALFRED\core\brain.py", line 54, in get_response
+    response: Optional[str] = handle_memory_commands(lower)
+                              ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Python313\Lib\unittest\mock.py", line 1169, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\unittest\mock.py", line 1173, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\unittest\mock.py", line 1228, in _execute_mock_call
+    raise effect
+Exception: Test error
+2026-01-19 13:37:45 | DEBUG    | alfred.services.weather_service:38 | Using cached location data
+2026-01-19 13:37:45 | INFO     | alfred.services.weather_service:113 | Weather cache cleared
+2026-01-19 13:37:45 | DEBUG    | alfred.services.weather_service:73 | Using cached weather data for TestCity
+2026-01-19 13:37:45 | INFO     | alfred.services.weather_service:113 | Weather cache cleared
+2026-01-19 13:37:45 | INFO     | alfred.services.weather_service:113 | Weather cache cleared
+2026-01-19 13:39:47 | ERROR    | alfred.core.brain:75 | Error in get_response: Test error
+Traceback (most recent call last):
+  File "E:\ALFRED\core\brain.py", line 54, in get_response
+    response: Optional[str] = handle_memory_commands(lower)
+                              ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Python313\Lib\unittest\mock.py", line 1169, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\unittest\mock.py", line 1173, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\unittest\mock.py", line 1228, in _execute_mock_call
+    raise effect
+Exception: Test error
+2026-01-19 13:39:47 | DEBUG    | alfred.services.weather_service:38 | Using cached location data
+2026-01-19 13:39:47 | INFO     | alfred.services.weather_service:113 | Weather cache cleared
+2026-01-19 13:39:47 | DEBUG    | alfred.services.weather_service:73 | Using cached weather data for TestCity
+2026-01-19 13:39:47 | INFO     | alfred.services.weather_service:113 | Weather cache cleared
+2026-01-19 13:39:47 | INFO     | alfred.services.weather_service:113 | Weather cache cleared
+2026-01-19 13:40:23 | ERROR    | alfred.core.brain:75 | Error in get_response: Test error
+Traceback (most recent call last):
+  File "E:\ALFRED\core\brain.py", line 54, in get_response
+    response: Optional[str] = handle_memory_commands(lower)
+                              ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Python313\Lib\unittest\mock.py", line 1169, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\unittest\mock.py", line 1173, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\unittest\mock.py", line 1228, in _execute_mock_call
+    raise effect
+Exception: Test error
+2026-01-19 13:40:23 | DEBUG    | alfred.services.weather_service:38 | Using cached location data
+2026-01-19 13:40:23 | INFO     | alfred.services.weather_service:113 | Weather cache cleared
+2026-01-19 13:40:23 | DEBUG    | alfred.services.weather_service:73 | Using cached weather data for TestCity
+2026-01-19 13:40:23 | INFO     | alfred.services.weather_service:113 | Weather cache cleared
+2026-01-19 13:40:23 | INFO     | alfred.services.weather_service:113 | Weather cache cleared

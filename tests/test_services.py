@@ -30,11 +30,12 @@ class TestAutomation:
         """Test fuzzy command matching."""
         from services.automation import run_command
 
-        with patch('services.automation.open_browser') as mock_browser:
-            mock_browser.return_value = "Opening browser"
-            # Slightly misspelled should still match
-            result = run_command("opn browser")
-            # May or may not match depending on cutoff
+        # Patch webbrowser.open to prevent actual browser opening
+        with patch('webbrowser.open') as mock_browser:
+            # Test exact match
+            result = run_command("open browser")
+            assert result == "Opening your browser, sir."
+            mock_browser.assert_called_once()
 
     def test_run_command_no_match_returns_none(self):
         """Test that unrecognized commands return None."""

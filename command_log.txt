@@ -381,3 +381,38 @@
 
 [2026-01-12 14:49:37] INPUT: what's the weather like today
 
+[2026-01-19 13:32:08] INPUT: opn browser
+
+[2026-01-19 13:32:08] INPUT: opn browser
+             MATCHED: open browser
+
+[2026-01-19 13:32:09] INPUT: completely unrelated command xyz123
+
+[2026-01-19 13:35:46] INPUT: opn browser
+
+[2026-01-19 13:35:46] INPUT: opn browser
+             MATCHED: open browser
+
+[2026-01-19 13:35:46] INPUT: completely unrelated command xyz123
+
+[2026-01-19 13:37:45] INPUT: opn browser
+
+[2026-01-19 13:37:45] INPUT: opn browser
+             MATCHED: open browser
+
+[2026-01-19 13:37:45] INPUT: completely unrelated command xyz123
+
+[2026-01-19 13:39:47] INPUT: open browser
+
+[2026-01-19 13:39:47] INPUT: open browser
+             MATCHED: open browser
+
+[2026-01-19 13:39:47] INPUT: completely unrelated command xyz123
+
+[2026-01-19 13:40:23] INPUT: open browser
+
+[2026-01-19 13:40:23] INPUT: open browser
+             MATCHED: open browser
+
+[2026-01-19 13:40:23] INPUT: completely unrelated command xyz123
+
