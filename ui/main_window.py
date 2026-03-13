@@ -1,12 +1,13 @@
 """
 Main window for the ALFRED GUI application.
+Frameless window with custom title bar, collapsible sidebar, and status bar.
 """
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QSplitter, QFrame, QApplication
+    QFrame, QApplication, QSizeGrip
 )
-from PySide6.QtCore import Qt, Slot, QThreadPool
-from PySide6.QtGui import QFont
+from PySide6.QtCore import Qt, Slot, QThreadPool, QSize
+from PySide6.QtGui import QFont, QKeySequence, QShortcut
 
 from ui.styles.colors import COLORS
 from ui.styles.dark_theme import DARK_THEME_QSS
@@ -17,6 +18,10 @@ from ui.widgets.input_bar import InputBar
 from ui.widgets.waveform_widget import DualWaveformWidget
 from ui.widgets.system_dashboard import SystemDashboard
 from ui.widgets.quick_actions import QuickActionsWidget
+from ui.widgets.title_bar import CustomTitleBar
+from ui.widgets.sidebar import CollapsibleSidebar
+from ui.widgets.status_bar import StatusBar
+from ui.widgets.settings_panel import SettingsPanel
 
 from ui.threads.system_monitor_thread import SystemMonitorThread
 from ui.threads.audio_thread import AudioCaptureThread
@@ -32,71 +37,97 @@ class MainWindow(QMainWindow):
         self._setup_ui()
         self._setup_threads()
         self._connect_signals()
+        self._setup_shortcuts()
 
         # Show welcome message
         self.chat_widget.add_message(
             "A.L.F.R.E.D",
-            "Hello! I'm A.L.F.R.E.D, your personal assistant. How can I help you today?"
+            "Hello! I'm **A.L.F.R.E.D**, your personal assistant. How can I help you today?"
         )
 
+        # Set initial status
+        self.status_bar.set_llm_status("Claude 3.5 Sonnet", True)
+
     def _setup_window(self):
-        """Configure the main window."""
+        """Configure the main window as frameless."""
         self.setWindowTitle("A.L.F.R.E.D")
         self.setMinimumSize(1000, 700)
         self.resize(1200, 800)
+
+        # Frameless window
+        self.setWindowFlags(Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
 
         # Apply dark theme
         self.setStyleSheet(DARK_THEME_QSS)
 
     def _setup_ui(self):
         """Set up the main UI layout."""
-        # Central widget
+        # Central widget with border for frameless window
         central_widget = QWidget()
-        central_widget.setStyleSheet(f"background-color: {COLORS['bg_primary']};")
+        central_widget.setObjectName("centralFrame")
+        central_widget.setStyleSheet(f"""
+            #centralFrame {{
+                background-color: {COLORS['bg_primary']};
+                border: 1px solid {COLORS['border_default']};
+                border-radius: 10px;
+            }}
+        """)
         self.setCentralWidget(central_widget)
 
-        # Main layout
-        main_layout = QHBoxLayout(central_widget)
-        main_layout.setContentsMargins(12, 12, 12, 12)
-        main_layout.setSpacing(12)
+        # Main vertical layout
+        main_v_layout = QVBoxLayout(central_widget)
+        main_v_layout.setContentsMargins(1, 1, 1, 1)
+        main_v_layout.setSpacing(0)
 
-        # Left panel (sidebar with dashboard and quick actions)
-        left_panel = self._create_left_panel()
+        # Custom title bar
+        self.title_bar = CustomTitleBar()
+        self.title_bar.minimize_clicked.connect(self.showMinimized)
+        self.title_bar.maximize_clicked.connect(self._toggle_maximize)
+        self.title_bar.close_clicked.connect(self.close)
+        self.title_bar.settings_clicked.connect(self._open_settings)
+
+        main_v_layout.addWidget(self.title_bar)
+
+        # Content area (sidebar + right panel)
+        content_widget = QWidget()
+        content_widget.setStyleSheet(f"background-color: {COLORS['bg_primary']};")
+        content_layout = QHBoxLayout(content_widget)
+        content_layout.setContentsMargins(12, 8, 12, 0)
+        content_layout.setSpacing(12)
+
+        # Collapsible sidebar
+        self.sidebar = CollapsibleSidebar()
+        self._setup_sidebar()
 
         # Right panel (chat area)
         right_panel = self._create_right_panel()
 
-        # Splitter for resizable panels
-        splitter = QSplitter(Qt.Horizontal)
-        splitter.addWidget(left_panel)
-        splitter.addWidget(right_panel)
-        splitter.setSizes([350, 850])  # Initial sizes
-        splitter.setStretchFactor(0, 0)  # Left panel doesn't stretch
-        splitter.setStretchFactor(1, 1)  # Right panel stretches
+        content_layout.addWidget(self.sidebar)
+        content_layout.addWidget(right_panel, stretch=1)
 
-        main_layout.addWidget(splitter)
+        main_v_layout.addWidget(content_widget, stretch=1)
 
-    def _create_left_panel(self) -> QWidget:
-        """Create the left sidebar panel."""
-        panel = QWidget()
-        panel.setMinimumWidth(300)
-        panel.setMaximumWidth(450)
+        # Status bar at the bottom
+        self.status_bar = StatusBar()
+        main_v_layout.addWidget(self.status_bar)
 
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
+        # Size grip for resizing frameless window
+        self._size_grip = QSizeGrip(central_widget)
+        self._size_grip.setFixedSize(16, 16)
+        self._size_grip.setStyleSheet("background: transparent;")
 
+    def _setup_sidebar(self):
+        """Set up sidebar with dashboard and quick actions."""
         # System dashboard
         self.system_dashboard = SystemDashboard()
 
         # Quick actions
         self.quick_actions = QuickActionsWidget()
 
-        layout.addWidget(self.system_dashboard)
-        layout.addWidget(self.quick_actions)
-        layout.addStretch()
-
-        return panel
+        self.sidebar.add_widget(self.system_dashboard)
+        self.sidebar.add_widget(self.quick_actions)
+        self.sidebar.add_stretch()
 
     def _create_right_panel(self) -> QWidget:
         """Create the right chat panel."""
@@ -104,7 +135,7 @@ class MainWindow(QMainWindow):
 
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
+        layout.setSpacing(8)
 
         # Chat widget
         self.chat_widget = ChatWidget()
@@ -153,9 +184,40 @@ class MainWindow(QMainWindow):
         signals.response_ready.connect(self._on_response_ready)
         signals.output_audio_data.connect(self.waveform_widget.update_output)
 
-        # Speaking signals for output waveform animation
+        # Speaking signals for output waveform animation and status bar
         signals.speaking_started.connect(self.waveform_widget.start_output_simulation)
+        signals.speaking_started.connect(lambda: self.status_bar.set_speaking(True))
         signals.speaking_finished.connect(self.waveform_widget.stop_output_simulation)
+        signals.speaking_finished.connect(lambda: self.status_bar.set_speaking(False))
+
+        # LLM status
+        signals.llm_status_changed.connect(self.status_bar.set_llm_status)
+
+    def _setup_shortcuts(self):
+        """Set up keyboard shortcuts."""
+        # Ctrl+B to toggle sidebar
+        toggle_sidebar = QShortcut(QKeySequence("Ctrl+B"), self)
+        toggle_sidebar.activated.connect(self.sidebar.toggle)
+
+    def _toggle_maximize(self):
+        """Toggle between maximized and normal window state."""
+        if self.isMaximized():
+            self.showNormal()
+            self.title_bar.set_maximized_state(False)
+        else:
+            self.showMaximized()
+            self.title_bar.set_maximized_state(True)
+
+    def _open_settings(self):
+        """Open the settings panel."""
+        dialog = SettingsPanel(self)
+        dialog.settings_changed.connect(self._on_settings_changed)
+        dialog.exec()
+
+    @Slot(dict)
+    def _on_settings_changed(self, settings: dict):
+        """Handle settings changes."""
+        signals.settings_changed.emit(settings)
 
     @Slot(str)
     def _on_text_submitted(self, text: str):
@@ -189,13 +251,13 @@ class MainWindow(QMainWindow):
     @Slot(str)
     def _on_speech_recognized(self, text: str):
         """Handle recognized speech."""
-        # Process the recognized text
         self._on_text_submitted(text)
 
     @Slot(bool)
     def _on_listening_state_changed(self, is_listening: bool):
         """Handle listening state changes."""
         self.input_bar.set_listening_state(is_listening)
+        self.status_bar.set_mic_status(is_listening)
         if is_listening:
             self.input_bar.set_placeholder("Listening... Speak now")
             self.waveform_widget.input_waveform.set_active(True)
@@ -206,29 +268,20 @@ class MainWindow(QMainWindow):
     @Slot(str)
     def _on_audio_error(self, error: str):
         """Handle audio errors."""
-        # Reset listening state
         self.input_bar.set_listening_state(False)
         self.input_bar.set_placeholder("Type your message here...")
-        # Only show significant errors in chat (not timeouts)
+        self.status_bar.set_mic_status(False)
         if "timeout" not in error.lower():
             self.chat_widget.add_message("System", f"Audio: {error}")
 
     @Slot(str, str)
     def _on_quick_action(self, action_id: str, command: str):
         """Handle quick action button click."""
-        # Add user action to chat
         self.chat_widget.add_message("You", f"[Quick Action: {action_id}]")
-
-        # Show typing indicator
         self.chat_widget.show_typing()
-
-        # Disable input
         self.input_bar.set_enabled(False)
-
-        # Highlight the tile
         self.quick_actions.highlight_tile(action_id, True)
 
-        # Process action in thread pool
         worker = QuickActionWorker(action_id, command)
         worker.signals.finished.connect(
             lambda response: self._on_quick_action_finished(action_id, response)
@@ -253,7 +306,9 @@ class MainWindow(QMainWindow):
         self.input_bar.set_enabled(True)
         self.input_bar.focus_input()
 
-        # Check for shutdown
+        # Update LLM status on success
+        signals.llm_status_changed.emit("Claude 3.5 Sonnet", True)
+
         if "powering down" in response.lower():
             self.close()
 
@@ -263,8 +318,6 @@ class MainWindow(QMainWindow):
         self.chat_widget.hide_typing()
         self.chat_widget.add_message("A.L.F.R.E.D", response)
         self.input_bar.set_enabled(True)
-
-        # Remove highlight
         self.quick_actions.highlight_tile(action_id, False)
 
     @Slot(str)
@@ -274,15 +327,19 @@ class MainWindow(QMainWindow):
         self.chat_widget.add_message("System", f"Error: {error}")
         self.input_bar.set_enabled(True)
         self.input_bar.focus_input()
+        signals.llm_status_changed.emit("Disconnected", False)
+
+    def resizeEvent(self, event):
+        """Position the size grip on resize."""
+        super().resizeEvent(event)
+        self._size_grip.move(
+            self.width() - self._size_grip.width() - 4,
+            self.height() - self._size_grip.height() - 4
+        )
 
     def closeEvent(self, event):
         """Handle window close event."""
-        # Stop threads
         self.system_monitor_thread.stop()
         self.audio_thread.stop()
-
-        # Wait for thread pool
         self.thread_pool.waitForDone(3000)
-
-        # Accept the close event
         event.accept()

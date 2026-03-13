@@ -416,3 +416,19 @@
 
 [2026-01-19 13:40:23] INPUT: completely unrelated command xyz123
 
+[2026-03-12 23:53:11] INPUT: hey jarvis what's the weather like
+
+[2026-03-13 00:05:32] INPUT: open browser
+
+[2026-03-13 00:05:32] INPUT: open browser
+             MATCHED: open browser
+
+[2026-03-13 00:05:32] INPUT: completely unrelated command xyz123
+
+[2026-03-13 00:06:04] INPUT: open browser
+
+[2026-03-13 00:06:04] INPUT: open browser
+             MATCHED: open browser
+
+[2026-03-13 00:06:04] INPUT: completely unrelated command xyz123
+

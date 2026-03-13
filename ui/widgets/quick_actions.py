@@ -1,5 +1,5 @@
 """
-Quick action tiles widget for common ALFRED commands.
+Quick action tiles widget with SVG icons for common ALFRED commands.
 """
 from PySide6.QtWidgets import (
     QWidget, QGridLayout, QPushButton, QVBoxLayout,
@@ -9,77 +9,88 @@ from PySide6.QtCore import Signal, Qt
 from PySide6.QtGui import QFont
 
 from ui.styles.colors import COLORS
+from ui.utils import load_svg_pixmap
 
 
-# Quick action definitions
+# Quick action definitions with SVG icon names
 QUICK_ACTIONS = [
     {
         "id": "system_status",
         "name": "System",
-        "icon": "\U0001F4CA",  # Chart emoji
+        "icon": "\U0001F4CA",
+        "icon_svg": "system",
         "command": "system status",
         "tooltip": "Check system health"
     },
     {
         "id": "weather",
         "name": "Weather",
-        "icon": "\U0001F324",  # Sun behind cloud
+        "icon": "\U0001F324",
+        "icon_svg": "weather",
         "command": "what's the weather",
         "tooltip": "Get current weather"
     },
     {
         "id": "calendar",
         "name": "Calendar",
-        "icon": "\U0001F4C5",  # Calendar emoji
+        "icon": "\U0001F4C5",
+        "icon_svg": "calendar",
         "command": "what's on my calendar",
         "tooltip": "View upcoming events"
     },
     {
         "id": "time",
         "name": "Time",
-        "icon": "\U0001F551",  # Clock emoji
+        "icon": "\U0001F551",
+        "icon_svg": "time",
         "command": "tell time",
         "tooltip": "Get current time"
     },
     {
         "id": "vscode",
         "name": "VS Code",
-        "icon": "\U0001F4BB",  # Computer emoji
+        "icon": "\U0001F4BB",
+        "icon_svg": "vscode",
         "command": "open vs code",
         "tooltip": "Launch VS Code"
     },
     {
         "id": "browser",
         "name": "Browser",
-        "icon": "\U0001F310",  # Globe emoji
+        "icon": "\U0001F310",
+        "icon_svg": "browser",
         "command": "open browser",
         "tooltip": "Open web browser"
     },
     {
         "id": "add_event",
         "name": "Add Event",
-        "icon": "\U00002795",  # Plus sign
+        "icon": "\U00002795",
+        "icon_svg": "add_event",
         "command": "add event",
         "tooltip": "Create calendar event"
     },
     {
         "id": "find_file",
         "name": "Find File",
-        "icon": "\U0001F50D",  # Magnifying glass
+        "icon": "\U0001F50D",
+        "icon_svg": "find_file",
         "command": "find file",
         "tooltip": "Search for files"
     },
     {
         "id": "lock",
         "name": "Lock",
-        "icon": "\U0001F512",  # Lock emoji
+        "icon": "\U0001F512",
+        "icon_svg": "lock",
         "command": "lock computer",
         "tooltip": "Lock workstation"
     },
     {
         "id": "music",
         "name": "Music",
-        "icon": "\U0001F3B5",  # Musical note
+        "icon": "\U0001F3B5",
+        "icon_svg": "music",
         "command": "play music",
         "tooltip": "Play music"
     },
@@ -87,7 +98,7 @@ QUICK_ACTIONS = [
 
 
 class ActionTile(QPushButton):
-    """Individual quick action tile button."""
+    """Individual quick action tile button with SVG icon."""
 
     action_clicked = Signal(str, str)  # action_id, command
 
@@ -98,22 +109,33 @@ class ActionTile(QPushButton):
         self.clicked.connect(self._on_clicked)
 
     def _setup_ui(self):
-        """Set up the tile UI."""
+        """Set up the tile UI with SVG icon or emoji fallback."""
         self.setFixedSize(80, 80)
         self.setCursor(Qt.PointingHandCursor)
         self.setToolTip(self._action_data.get('tooltip', ''))
 
-        # Create layout for icon and label
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 8, 4, 8)
         layout.setSpacing(4)
         layout.setAlignment(Qt.AlignCenter)
 
-        # Icon label
-        icon_label = QLabel(self._action_data.get('icon', '\U00002753'))
-        icon_label.setFont(QFont("Segoe UI Emoji", 24))
+        # Try SVG icon first, fall back to emoji
+        icon_label = QLabel()
         icon_label.setAlignment(Qt.AlignCenter)
         icon_label.setStyleSheet("background: transparent;")
+
+        svg_name = self._action_data.get('icon_svg', '')
+        if svg_name:
+            pixmap = load_svg_pixmap(svg_name, 28)
+            if not pixmap.isNull():
+                icon_label.setPixmap(pixmap)
+            else:
+                # Fallback to emoji
+                icon_label.setText(self._action_data.get('icon', '\U00002753'))
+                icon_label.setFont(QFont("Segoe UI Emoji", 24))
+        else:
+            icon_label.setText(self._action_data.get('icon', '\U00002753'))
+            icon_label.setFont(QFont("Segoe UI Emoji", 24))
 
         # Name label
         name_label = QLabel(self._action_data.get('name', 'Action'))

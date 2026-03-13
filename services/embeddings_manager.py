@@ -62,29 +62,67 @@ def generate_embedding(text: str) -> list[float]:
     return response.data[0].embedding
 
 
-def store_memory_vector(memory_text: str, metadata: Optional[dict[str, Any]] = None) -> None:
-    """Store a memory text with its embedding in the vector database."""
+def store_memory_vector(
+    memory_text: str,
+    memory_id: Optional[str] = None,
+    metadata: Optional[dict[str, Any]] = None,
+) -> Optional[str]:
+    """
+    Store a memory text with its embedding in the vector database.
+
+    Args:
+        memory_text: The text to embed and store.
+        memory_id: Explicit unique ID for this vector. If None, one is generated.
+        metadata: Optional metadata dict to attach.
+
+    Returns:
+        The ID used in ChromaDB, or None on failure.
+    """
     _ensure_initialized()
 
     if _collection is None:
         logger.warning("ChromaDB collection not available, skipping vector storage")
-        return
+        return None
 
     try:
-        embedding: list[float] = generate_embedding(memory_text)
-        existing_ids = _collection.get()["ids"]
-        new_id: str = str(len(existing_ids))
+        import uuid
 
-        _collection.add(
+        embedding: list[float] = generate_embedding(memory_text)
+        doc_id: str = memory_id or str(uuid.uuid4())
+
+        _collection.upsert(
             embeddings=[embedding],
             documents=[memory_text],
-            ids=[new_id],
-            metadatas=[metadata or {}]
+            ids=[doc_id],
+            metadatas=[metadata or {}],
         )
 
-        logger.debug(f"Stored memory vector: {memory_text[:50]}...")
+        logger.debug(f"Stored memory vector [{doc_id}]: {memory_text[:50]}...")
+        return doc_id
     except Exception as e:
         logger.error(f"Failed to store memory vector: {e}")
+        return None
+
+
+def delete_memory_vector(memory_id: str) -> bool:
+    """
+    Delete a memory vector from ChromaDB by its ID.
+
+    Returns True if deletion succeeded, False otherwise.
+    """
+    _ensure_initialized()
+
+    if _collection is None:
+        logger.warning("ChromaDB collection not available, cannot delete vector")
+        return False
+
+    try:
+        _collection.delete(ids=[memory_id])
+        logger.debug(f"Deleted memory vector: {memory_id}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to delete memory vector {memory_id}: {e}")
+        return False
 
 
 def search_memory(query: str, n_results: int = 3) -> dict[str, Any]:

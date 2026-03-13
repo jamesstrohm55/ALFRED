@@ -17,26 +17,22 @@ def listen() -> Optional[str]:
     """
     recognizer: sr.Recognizer = sr.Recognizer()
     try:
-        try:
-            with sr.Microphone() as source:
-                print("Listening...")
-                recognizer.adjust_for_ambient_noise(source)
-                try:
-                    audio: sr.AudioData = recognizer.listen(source, timeout=5)
-                    command: str = recognizer.recognize_google(audio)
-                    print(f"You (via mic): {command}")
-                    return command
-                except sr.UnknownValueError:
-                    print("Sorry, I didn't catch that.")
-                    return None
-                except sr.WaitTimeoutError:
-                    print("Listening timed out.")
-                    return None
-        except (OSError, AttributeError):
-            # No mic found or access issue
-            command = input("Microphone not found. Please type your command: ")
-            print(f"You (typed): {command}")
-            return command
-    except sr.UnknownValueError:
-        print("Sorry, I didn't catch that.")
-        return None
+        with sr.Microphone() as source:
+            print("Listening...")
+            recognizer.adjust_for_ambient_noise(source)
+            try:
+                audio: sr.AudioData = recognizer.listen(source, timeout=5)
+                command: str = recognizer.recognize_google(audio)
+                print(f"You (via mic): {command}")
+                return command
+            except sr.UnknownValueError:
+                print("Sorry, I didn't catch that.")
+                return None
+            except sr.WaitTimeoutError:
+                print("Listening timed out.")
+                return None
+    except (OSError, AttributeError, IOError):
+        # Mic not found, access issue, or audio stream error
+        command = input("Microphone unavailable. Please type your command: ")
+        print(f"You (typed): {command}")
+        return command

@@ -13,7 +13,7 @@ QWidget {{
 }}
 
 QMainWindow {{
-    background-color: {COLORS['bg_primary']};
+    background-color: transparent;
 }}
 
 /* ===== Labels ===== */
@@ -111,6 +111,13 @@ QTextEdit, QPlainTextEdit {{
 
 QTextEdit:focus, QPlainTextEdit:focus {{
     border-color: {COLORS['accent_cyan']};
+}}
+
+/* ===== Text Browser (Markdown) ===== */
+QTextBrowser {{
+    background-color: transparent;
+    color: {COLORS['text_primary']};
+    border: none;
 }}
 
 /* ===== Scroll Area ===== */
@@ -342,5 +349,24 @@ QWidget[class="dashboard-panel"] {{
     background-color: {COLORS['bg_secondary']};
     border-radius: 8px;
     border: 1px solid {COLORS['border_default']};
+}}
+
+/* ===== Custom Title Bar ===== */
+CustomTitleBar {{
+    background-color: {COLORS['bg_secondary']};
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom: 1px solid {COLORS['border_default']};
+}}
+
+/* ===== Collapsible Sidebar ===== */
+CollapsibleSidebar {{
+    background-color: {COLORS['bg_primary']};
+}}
+
+/* ===== Settings Dialog ===== */
+QDialog {{
+    background-color: {COLORS['bg_primary']};
+    color: {COLORS['text_primary']};
 }}
 """

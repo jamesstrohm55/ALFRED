@@ -1,14 +1,19 @@
 """
 Core brain module for A.L.F.R.E.D - handles command routing and LLM interactions.
+
+Includes RAG (Retrieval-Augmented Generation) for injecting relevant memories
+into LLM prompts, and SQLite-backed conversation persistence.
 """
 from __future__ import annotations
 
+import uuid
 import threading
-from typing import Optional
+from typing import Any, Optional
 
 from openai import OpenAI
 from config import OPENAI_KEY, OPENROUTER_API_KEY
-from memory.memory_manager import remember, recall, forget, list_memory, semantic_search_memory
+from memory.memory_manager import remember, recall, forget, list_memory, semantic_search_memory, get_recent_memories
+from memory.database import get_connection
 from services.automation import run_command
 from service_commands.calendar_commands import handle_calendar_command
 from service_commands.weather_commands import handle_weather_command
@@ -21,10 +26,16 @@ logger = get_logger(__name__)
 
 client: OpenAI = OpenAI(api_key=OPENAI_KEY)
 
-# Thread-safe conversation history
+# Session ID for this runtime — persisted conversations are grouped by session
+SESSION_ID: str = str(uuid.uuid4())
+
+# Thread lock for conversation DB writes
 _history_lock: threading.Lock = threading.Lock()
-_conversation_history: list[dict[str, str]] = []
 MAX_HISTORY: int = 10
+
+# Relevance threshold for RAG — lower distance = more relevant
+RAG_DISTANCE_THRESHOLD: float = 1.0
+RAG_MAX_TOKENS: int = 500
 
 SYSTEM_PROMPT = """You are A.L.F.R.E.D, an All Knowing Logical Facilitator for Reasoned Execution of Duties.
 You are a sophisticated AI assistant inspired by J.A.R.V.I.S. Be helpful, concise, and maintain a professional yet friendly demeanor.
@@ -32,12 +43,96 @@ Address the user respectfully and provide accurate, thoughtful responses."""
 
 
 def add_to_history(role: str, content: str) -> None:
-    """Add a message to conversation history, maintaining max size (thread-safe)."""
+    """Persist a message to the conversations table in SQLite."""
     with _history_lock:
-        _conversation_history.append({"role": role, "content": content})
-        # Trim history more efficiently - remove oldest pair if over limit
-        while len(_conversation_history) > MAX_HISTORY * 2:
-            _conversation_history.pop(0)
+        try:
+            conn = get_connection()
+            conn.execute(
+                "INSERT INTO conversations (session_id, role, content) VALUES (?, ?, ?)",
+                (SESSION_ID, role, content),
+            )
+            conn.commit()
+        except Exception as e:
+            logger.error(f"Failed to persist conversation: {e}")
+
+
+def get_conversation_history(limit: Optional[int] = None) -> list[dict[str, str]]:
+    """
+    Load recent conversation history from SQLite.
+
+    Looks at the current session first; if empty, loads tail of the previous session
+    for continuity across restarts.
+    """
+    effective_limit = (limit or MAX_HISTORY) * 2  # user+assistant pairs
+    try:
+        conn = get_connection()
+        rows = conn.execute(
+            """SELECT role, content FROM conversations
+               WHERE session_id = ?
+               ORDER BY timestamp DESC LIMIT ?""",
+            (SESSION_ID, effective_limit),
+        ).fetchall()
+
+        if not rows:
+            # No messages in current session — load last few from previous session
+            rows = conn.execute(
+                """SELECT role, content FROM conversations
+                   WHERE session_id != ?
+                   ORDER BY timestamp DESC LIMIT ?""",
+                (SESSION_ID, effective_limit),
+            ).fetchall()
+
+        # Rows come newest-first; reverse to chronological order
+        return [{"role": row["role"], "content": row["content"]} for row in reversed(rows)]
+    except Exception as e:
+        logger.error(f"Failed to load conversation history: {e}")
+        return []
+
+
+def _build_memory_context(text: str) -> str:
+    """
+    Build a RAG context string from semantic search and recent memories.
+
+    Queries ChromaDB for semantically relevant memories and appends
+    recent stored facts, filtering by relevance threshold.
+    """
+    context_parts: list[str] = []
+
+    # Semantic search for relevant memories
+    try:
+        results = semantic_search_memory(text, n_results=5)
+        if results:
+            relevant = [
+                r["document"] for r in results
+                if r["distance"] < RAG_DISTANCE_THRESHOLD
+            ]
+            if relevant:
+                context_parts.append("Semantically relevant memories:")
+                for mem in relevant:
+                    context_parts.append(f"  - {mem}")
+    except Exception as e:
+        logger.debug(f"Semantic search for RAG failed: {e}")
+
+    # Recent stored facts
+    try:
+        recent = get_recent_memories(limit=5)
+        if recent:
+            context_parts.append("Recently stored facts:")
+            for entry in recent:
+                context_parts.append(f"  - {entry['key']}: {entry['value']}")
+    except Exception as e:
+        logger.debug(f"Recent memories for RAG failed: {e}")
+
+    if not context_parts:
+        return ""
+
+    # Cap at approximate token limit (rough: 1 token ≈ 4 chars)
+    context = "\n".join(context_parts)
+    max_chars = RAG_MAX_TOKENS * 4
+    if len(context) > max_chars:
+        context = context[:max_chars] + "\n  ..."
+
+    return context
 
 
 def get_response(text: str) -> str:
@@ -93,38 +188,54 @@ def handle_service_commands(text: str) -> Optional[str]:
     return None
 
 
-def build_messages() -> list[dict[str, str]]:
-    """Build messages list with system prompt and conversation history (thread-safe)."""
-    messages: list[dict[str, str]] = [{"role": "system", "content": SYSTEM_PROMPT}]
-    with _history_lock:
-        messages.extend(_conversation_history.copy())
+def build_messages(user_text: str) -> list[dict[str, str]]:
+    """Build messages list with system prompt, RAG context, and conversation history."""
+    # Build RAG-augmented system prompt
+    memory_context = _build_memory_context(user_text)
+    if memory_context:
+        system_content = (
+            f"{SYSTEM_PROMPT}\n\n"
+            f"## Relevant Memories\n"
+            f"Use these memories to inform your response when relevant:\n\n"
+            f"{memory_context}"
+        )
+    else:
+        system_content = SYSTEM_PROMPT
+
+    messages: list[dict[str, str]] = [{"role": "system", "content": system_content}]
+
+    # Load conversation history from SQLite
+    history = get_conversation_history()
+    messages.extend(history)
+
     return messages
 
 
 def query_llm_with_context(text: str) -> str:
-    """Query LLM with conversation context and fallback support."""
-    messages: list[dict[str, str]] = build_messages()
+    """Query LLM with conversation context, RAG memory injection, and fallback support."""
+    messages: list[dict[str, str]] = build_messages(text)
+
+    openrouter_client = OpenAI(
+        api_key=OPENROUTER_API_KEY,
+        base_url="https://openrouter.ai/api/v1"
+    )
 
     try:
-        completion = client.chat.completions.create(
-            model="gpt-4o-mini",
+        completion = openrouter_client.chat.completions.create(
+            model="anthropic/claude-3.5-sonnet",
             messages=messages
         )
         return completion.choices[0].message.content
 
     except Exception as e:
-        logger.warning(f"Primary LLM (GPT-4o-mini) failed: {e}")
-        # Fallback to OpenRouter
+        logger.warning(f"Primary LLM (Claude 3.5 Sonnet) failed: {e}")
+        # Fallback to OpenAI
         try:
-            openrouter_client = OpenAI(
-                api_key=OPENROUTER_API_KEY,
-                base_url="https://openrouter.ai/api/v1"
-            )
-            completion = openrouter_client.chat.completions.create(
-                model="anthropic/claude-3-sonnet",
+            completion = client.chat.completions.create(
+                model="gpt-4o-mini",
                 messages=messages
             )
-            logger.info("Successfully used fallback LLM (Claude via OpenRouter)")
+            logger.info("Successfully used fallback LLM (GPT-4o-mini)")
             return completion.choices[0].message.content
 
         except Exception as fallback_error:

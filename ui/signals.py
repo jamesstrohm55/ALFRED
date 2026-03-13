@@ -35,6 +35,12 @@ class ALFREDSignals(QObject):
     # Error handling
     error_occurred = Signal(str)                # error message
 
+    # LLM status
+    llm_status_changed = Signal(str, bool)      # model_name, is_connected
+
+    # Settings
+    settings_changed = Signal(dict)             # settings dictionary
+
 
 # Global singleton instance for application-wide signal access
 signals = ALFREDSignals()
