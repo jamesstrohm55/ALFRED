@@ -2,7 +2,7 @@
 
 > **All-Knowing Logical Facilitator for Reasoned Execution of Duties**
 
-A.L.F.R.E.D is a modular, intelligent, and voice-enabled personal assistant inspired by J.A.R.V.I.S. Completely powered by Python, it integrates multiple AI technologies, APIs, and system commands to create a cohesive and interactive digital assistant for personal and professional productivity.
+A.L.F.R.E.D is a modular, voice-enabled personal AI assistant inspired by J.A.R.V.I.S. Built entirely in Python, it features a multi-provider LLM fallback chain (Claude 3.5 Sonnet via OpenRouter → GPT-4o-mini), a RAG pipeline backed by Supabase + pgvector for semantic memory, and a JARVIS-inspired PySide6 GUI with real-time system dashboards and audio visualization.
 
 ---
 
@@ -10,7 +10,7 @@ A.L.F.R.E.D is a modular, intelligent, and voice-enabled personal assistant insp
 
 ### Core Capabilities
 - **Voice Interaction**: Speech recognition and synthesis with ElevenLabs (pyttsx3 offline fallback)
-- **LLM-Powered Conversations**: Multi-layered LLM fallback (OpenAI, OpenRouter, Claude)
+- **LLM-Powered Conversations**: Claude 3.5 Sonnet (OpenRouter) primary with GPT-4o-mini fallback
 - **Memory System**: Store, recall, forget, and list facts with semantic search (Supabase + pgvector)
 - **RAG Integration**: Relevant memories automatically injected into LLM conversations
 - **Conversation Persistence**: Chat history stored in Supabase, persists across sessions
@@ -86,6 +86,13 @@ ALFRED/
 │
 ├── logs/                           # Application logs (auto-created)
 │   └── alfred_YYYYMMDD.log         # Daily log files
+│
+├── tests/                          # Test suite
+│   ├── conftest.py                 # Shared fixtures & mocks
+│   ├── test_brain.py               # Command routing & LLM tests
+│   ├── test_database.py            # Supabase integration tests
+│   ├── test_memory.py              # Memory CRUD & semantic search
+│   └── test_services.py            # Calendar, weather, file tests
 │
 ├── .env                            # Environment variables (gitignored)
 ├── config.py                       # Configuration loader
@@ -275,6 +282,24 @@ The modern GUI features:
 | "Schedule event Doctor appointment on Friday at 2pm" | Add calendar event |
 | "Find resume" | Search for files |
 | "System status" | Get CPU/RAM/Disk stats |
+
+---
+
+## Testing
+
+Run the test suite with pytest:
+
+```bash
+pytest tests/ -v
+```
+
+Tests cover:
+- **Brain**: Command routing, LLM fallback chain, conversation history, RAG context injection
+- **Database**: Supabase connectivity, embedding generation
+- **Memory**: Remember/recall/forget, semantic search, auto-categorization
+- **Services**: Calendar date parsing, weather API, file operations
+
+All external dependencies (Supabase, LLM APIs, Google Calendar) are mocked via fixtures in `conftest.py`.
 
 ---
 
