@@ -432,3 +432,24 @@
 
 [2026-03-13 00:06:04] INPUT: completely unrelated command xyz123
 
+[2026-03-13 14:57:51] INPUT: open browser
+
+[2026-03-13 14:57:51] INPUT: open browser
+             MATCHED: open browser
+
+[2026-03-13 14:57:51] INPUT: completely unrelated command xyz123
+
+[2026-03-13 14:58:20] INPUT: open browser
+
+[2026-03-13 14:58:20] INPUT: open browser
+             MATCHED: open browser
+
+[2026-03-13 14:58:20] INPUT: completely unrelated command xyz123
+
+[2026-03-13 14:58:35] INPUT: open browser
+
+[2026-03-13 14:58:35] INPUT: open browser
+             MATCHED: open browser
+
+[2026-03-13 14:58:35] INPUT: completely unrelated command xyz123
+

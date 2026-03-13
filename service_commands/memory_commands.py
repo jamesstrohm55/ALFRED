@@ -76,7 +76,7 @@ def handle_memory_commands(text: str) -> Optional[str]:
             return f"No memories found matching '{query}'."
         lines = [f"Found {len(results)} relevant memories:"]
         for r in results:
-            lines.append(f"  - {r['document']} (relevance: {1 - r['distance']:.0%})")
+            lines.append(f"  - {r['document']} (relevance: {r['similarity']:.0%})")
         return "\n".join(lines)
 
     # List memories — with optional category filter

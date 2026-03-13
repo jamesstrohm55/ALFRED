@@ -1,15 +1,12 @@
 """
-Unit tests for memory/database.py - SQLite schema, CRUD, and migration.
+Unit tests for memory/database.py - Supabase client initialization and helpers.
 
-Uses :memory: databases to avoid touching disk.
+Mocks the Supabase client to avoid hitting a real backend.
 """
 from __future__ import annotations
 
-import json
-import sqlite3
 import pytest
 from unittest.mock import patch, MagicMock
-from pathlib import Path
 import sys
 import os
 
@@ -17,229 +14,107 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-class TestInitDb:
-    """Tests for init_db() schema creation."""
+class TestGetSupabase:
+    """Tests for get_supabase() client initialization."""
 
-    def test_creates_memories_table(self):
-        conn = sqlite3.connect(":memory:")
-        conn.row_factory = sqlite3.Row
+    def setup_method(self):
+        """Reset the singleton before each test."""
+        import memory.database as db
+        db._supabase_client = None
 
-        with patch("memory.database.get_connection", return_value=conn):
-            from memory.database import init_db
-            init_db()
+    def test_returns_client(self):
+        import memory.database as db
+        db._supabase_client = None
 
-        tables = [
-            row[0]
-            for row in conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            ).fetchall()
-        ]
-        assert "memories" in tables
-        assert "conversations" in tables
-        assert "memory_metadata" in tables
-        conn.close()
+        mock_client = MagicMock()
+        mock_create = MagicMock(return_value=mock_client)
 
-    def test_idempotent(self):
-        """Calling init_db() twice should not raise."""
-        conn = sqlite3.connect(":memory:")
-        conn.row_factory = sqlite3.Row
+        with patch.dict("sys.modules", {}):
+            with patch("supabase.create_client", mock_create):
+                with patch("config.SUPABASE_URL", "https://test.supabase.co"), \
+                     patch("config.SUPABASE_KEY", "test-key"):
+                    result = db.get_supabase()
+                    assert result == mock_client
 
-        with patch("memory.database.get_connection", return_value=conn):
-            from memory.database import init_db
-            init_db()
-            init_db()  # Should not raise
+    def test_singleton_returns_same_client(self):
+        import memory.database as db
+        mock_client = MagicMock()
+        db._supabase_client = mock_client
 
-        conn.close()
+        result1 = db.get_supabase()
+        result2 = db.get_supabase()
+        assert result1 is result2
+        assert result1 is mock_client
 
-    def test_memories_schema_columns(self):
-        conn = sqlite3.connect(":memory:")
-        conn.row_factory = sqlite3.Row
+    def test_raises_without_credentials(self):
+        import memory.database as db
+        db._supabase_client = None
 
-        with patch("memory.database.get_connection", return_value=conn):
-            from memory.database import init_db
-            init_db()
-
-        columns = [
-            row[1]
-            for row in conn.execute("PRAGMA table_info(memories)").fetchall()
-        ]
-        expected = ["id", "key", "value", "category", "tags", "created_at", "updated_at", "chromadb_id"]
-        for col in expected:
-            assert col in columns, f"Missing column: {col}"
-        conn.close()
-
-    def test_conversations_schema_columns(self):
-        conn = sqlite3.connect(":memory:")
-        conn.row_factory = sqlite3.Row
-
-        with patch("memory.database.get_connection", return_value=conn):
-            from memory.database import init_db
-            init_db()
-
-        columns = [
-            row[1]
-            for row in conn.execute("PRAGMA table_info(conversations)").fetchall()
-        ]
-        expected = ["id", "session_id", "role", "content", "timestamp"]
-        for col in expected:
-            assert col in columns, f"Missing column: {col}"
-        conn.close()
+        # Mock the supabase import to avoid pyiceberg/pydantic compat issues in test env
+        mock_module = MagicMock()
+        with patch.dict("sys.modules", {"supabase": mock_module}):
+            with patch("config.SUPABASE_URL", None), \
+                 patch("config.SUPABASE_KEY", None):
+                with pytest.raises(RuntimeError, match="SUPABASE_URL"):
+                    db.get_supabase()
 
 
-class TestMemoriesCRUD:
-    """Direct SQLite CRUD tests on the memories table."""
+class TestGenerateEmbedding:
+    """Tests for generate_embedding()."""
 
-    @pytest.fixture
-    def db(self):
-        conn = sqlite3.connect(":memory:")
-        conn.row_factory = sqlite3.Row
-        with patch("memory.database.get_connection", return_value=conn):
-            from memory.database import init_db
-            init_db()
-        yield conn
-        conn.close()
+    def setup_method(self):
+        """Reset the OpenAI singleton before each test."""
+        import memory.database as db
+        db._openai_client = None
 
-    def test_insert_and_select(self, db):
-        db.execute(
-            "INSERT INTO memories (key, value) VALUES (?, ?)",
-            ("color", "blue"),
-        )
-        db.commit()
-        row = db.execute("SELECT value FROM memories WHERE key = ?", ("color",)).fetchone()
-        assert row["value"] == "blue"
+    def test_returns_embedding_vector(self):
+        import memory.database as db
+        db._openai_client = None
 
-    def test_unique_key_constraint(self, db):
-        db.execute("INSERT INTO memories (key, value) VALUES (?, ?)", ("k", "v1"))
-        db.commit()
-        with pytest.raises(sqlite3.IntegrityError):
-            db.execute("INSERT INTO memories (key, value) VALUES (?, ?)", ("k", "v2"))
+        mock_response = MagicMock()
+        mock_response.data = [MagicMock(embedding=[0.1, 0.2, 0.3])]
 
-    def test_upsert(self, db):
-        db.execute(
-            """INSERT INTO memories (key, value) VALUES (?, ?)
-               ON CONFLICT(key) DO UPDATE SET value = excluded.value""",
-            ("k", "v1"),
-        )
-        db.execute(
-            """INSERT INTO memories (key, value) VALUES (?, ?)
-               ON CONFLICT(key) DO UPDATE SET value = excluded.value""",
-            ("k", "v2"),
-        )
-        db.commit()
-        row = db.execute("SELECT value FROM memories WHERE key = ?", ("k",)).fetchone()
-        assert row["value"] == "v2"
+        mock_client = MagicMock()
+        mock_client.embeddings.create.return_value = mock_response
 
-    def test_delete(self, db):
-        db.execute("INSERT INTO memories (key, value) VALUES (?, ?)", ("k", "v"))
-        db.commit()
-        db.execute("DELETE FROM memories WHERE key = ?", ("k",))
-        db.commit()
-        assert db.execute("SELECT * FROM memories WHERE key = ?", ("k",)).fetchone() is None
+        mock_openai_cls = MagicMock(return_value=mock_client)
 
-    def test_category_filter(self, db):
-        db.execute("INSERT INTO memories (key, value, category) VALUES (?, ?, ?)", ("a", "1", "personal"))
-        db.execute("INSERT INTO memories (key, value, category) VALUES (?, ?, ?)", ("b", "2", "preference"))
-        db.commit()
-        rows = db.execute("SELECT * FROM memories WHERE category = ?", ("personal",)).fetchall()
-        assert len(rows) == 1
-        assert rows[0]["key"] == "a"
+        with patch("openai.OpenAI", mock_openai_cls):
+            with patch("config.OPENAI_KEY", "test-key"):
+                result = db.generate_embedding("test text")
+                assert result == [0.1, 0.2, 0.3]
+
+    def test_calls_correct_model(self):
+        import memory.database as db
+        db._openai_client = None
+
+        mock_response = MagicMock()
+        mock_response.data = [MagicMock(embedding=[0.1])]
+
+        mock_client = MagicMock()
+        mock_client.embeddings.create.return_value = mock_response
+
+        mock_openai_cls = MagicMock(return_value=mock_client)
+
+        with patch("openai.OpenAI", mock_openai_cls):
+            with patch("config.OPENAI_KEY", "test-key"):
+                db.generate_embedding("test")
+                call_kwargs = mock_client.embeddings.create.call_args
+                assert call_kwargs.kwargs["model"] == "text-embedding-3-small"
 
 
-class TestConversationsCRUD:
-    """Direct SQLite CRUD tests on the conversations table."""
+class TestCheckConnection:
+    """Tests for check_connection()."""
 
-    @pytest.fixture
-    def db(self):
-        conn = sqlite3.connect(":memory:")
-        conn.row_factory = sqlite3.Row
-        with patch("memory.database.get_connection", return_value=conn):
-            from memory.database import init_db
-            init_db()
-        yield conn
-        conn.close()
+    def test_returns_true_on_success(self):
+        mock_sb = MagicMock()
+        mock_sb.table.return_value.select.return_value.limit.return_value.execute.return_value = MagicMock()
 
-    def test_insert_and_select(self, db):
-        db.execute(
-            "INSERT INTO conversations (session_id, role, content) VALUES (?, ?, ?)",
-            ("sess1", "user", "hello"),
-        )
-        db.commit()
-        row = db.execute("SELECT * FROM conversations WHERE session_id = ?", ("sess1",)).fetchone()
-        assert row["content"] == "hello"
-        assert row["role"] == "user"
+        with patch("memory.database.get_supabase", return_value=mock_sb):
+            from memory.database import check_connection
+            assert check_connection() is True
 
-    def test_session_ordering(self, db):
-        db.execute("INSERT INTO conversations (session_id, role, content) VALUES (?, ?, ?)", ("s", "user", "first"))
-        db.execute("INSERT INTO conversations (session_id, role, content) VALUES (?, ?, ?)", ("s", "assistant", "second"))
-        db.commit()
-        rows = db.execute(
-            "SELECT content FROM conversations WHERE session_id = ? ORDER BY timestamp ASC", ("s",)
-        ).fetchall()
-        assert rows[0]["content"] == "first"
-        assert rows[1]["content"] == "second"
-
-
-class TestMigrateFromJson:
-    """Tests for migrate_from_json()."""
-
-    def test_migration_inserts_data(self, tmp_path):
-        """Test that JSON data is migrated into SQLite."""
-        json_file = tmp_path / "memory.json"
-        json_file.write_text(json.dumps({"color": "blue", "name": "Alfred"}))
-
-        conn = sqlite3.connect(":memory:")
-        conn.row_factory = sqlite3.Row
-        with patch("memory.database.get_connection", return_value=conn):
-            from memory.database import init_db
-            init_db()
-
-        with patch("memory.database.get_connection", return_value=conn), \
-             patch("memory.database.MEMORY_JSON_PATH", json_file):
-            from memory.database import migrate_from_json
-            migrate_from_json()
-
-        rows = conn.execute("SELECT key, value FROM memories ORDER BY key").fetchall()
-        data = {row["key"]: row["value"] for row in rows}
-        assert data["color"] == "blue"
-        assert data["name"] == "Alfred"
-
-        # JSON file should be renamed to .bak
-        assert not json_file.exists()
-        assert (tmp_path / "memory.json.bak").exists()
-        conn.close()
-
-    def test_migration_skips_when_no_json(self):
-        """Migration should silently do nothing if no JSON file."""
-        conn = sqlite3.connect(":memory:")
-        conn.row_factory = sqlite3.Row
-        with patch("memory.database.get_connection", return_value=conn):
-            from memory.database import init_db
-            init_db()
-
-        fake_path = Path("/nonexistent/memory.json")
-        with patch("memory.database.MEMORY_JSON_PATH", fake_path):
-            from memory.database import migrate_from_json
-            migrate_from_json()  # Should not raise
-
-        conn.close()
-
-    def test_migration_handles_empty_json(self, tmp_path):
-        """Empty JSON should just rename to .bak without inserting."""
-        json_file = tmp_path / "memory.json"
-        json_file.write_text("{}")
-
-        conn = sqlite3.connect(":memory:")
-        conn.row_factory = sqlite3.Row
-        with patch("memory.database.get_connection", return_value=conn):
-            from memory.database import init_db
-            init_db()
-
-        with patch("memory.database.get_connection", return_value=conn), \
-             patch("memory.database.MEMORY_JSON_PATH", json_file):
-            from memory.database import migrate_from_json
-            migrate_from_json()
-
-        rows = conn.execute("SELECT * FROM memories").fetchall()
-        assert len(rows) == 0
-        assert not json_file.exists()
-        conn.close()
+    def test_returns_false_on_failure(self):
+        with patch("memory.database.get_supabase", side_effect=Exception("connection failed")):
+            from memory.database import check_connection
+            assert check_connection() is False

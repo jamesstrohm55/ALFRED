@@ -9,7 +9,7 @@ google-auth-httplib2
 google-auth-oauthlib
 dateparser
 psutil
-chromadb
+supabase
 requests
 pytest
 markdown>=3.5.0

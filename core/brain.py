@@ -2,7 +2,7 @@
 Core brain module for A.L.F.R.E.D - handles command routing and LLM interactions.
 
 Includes RAG (Retrieval-Augmented Generation) for injecting relevant memories
-into LLM prompts, and SQLite-backed conversation persistence.
+into LLM prompts, and Supabase-backed conversation persistence.
 """
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from typing import Any, Optional
 from openai import OpenAI
 from config import OPENAI_KEY, OPENROUTER_API_KEY
 from memory.memory_manager import remember, recall, forget, list_memory, semantic_search_memory, get_recent_memories
-from memory.database import get_connection
+from memory.database import get_supabase
 from services.automation import run_command
 from service_commands.calendar_commands import handle_calendar_command
 from service_commands.weather_commands import handle_weather_command
@@ -33,8 +33,8 @@ SESSION_ID: str = str(uuid.uuid4())
 _history_lock: threading.Lock = threading.Lock()
 MAX_HISTORY: int = 10
 
-# Relevance threshold for RAG — lower distance = more relevant
-RAG_DISTANCE_THRESHOLD: float = 1.0
+# Relevance threshold for RAG — higher similarity = more relevant
+RAG_SIMILARITY_THRESHOLD: float = 0.5
 RAG_MAX_TOKENS: int = 500
 
 SYSTEM_PROMPT = """You are A.L.F.R.E.D, an All Knowing Logical Facilitator for Reasoned Execution of Duties.
@@ -43,44 +43,52 @@ Address the user respectfully and provide accurate, thoughtful responses."""
 
 
 def add_to_history(role: str, content: str) -> None:
-    """Persist a message to the conversations table in SQLite."""
+    """Persist a message to the conversations table in Supabase."""
     with _history_lock:
         try:
-            conn = get_connection()
-            conn.execute(
-                "INSERT INTO conversations (session_id, role, content) VALUES (?, ?, ?)",
-                (SESSION_ID, role, content),
-            )
-            conn.commit()
+            sb = get_supabase()
+            sb.table("conversations").insert({
+                "session_id": SESSION_ID,
+                "role": role,
+                "content": content,
+            }).execute()
         except Exception as e:
             logger.error(f"Failed to persist conversation: {e}")
 
 
 def get_conversation_history(limit: Optional[int] = None) -> list[dict[str, str]]:
     """
-    Load recent conversation history from SQLite.
+    Load recent conversation history from Supabase.
 
     Looks at the current session first; if empty, loads tail of the previous session
     for continuity across restarts.
     """
     effective_limit = (limit or MAX_HISTORY) * 2  # user+assistant pairs
     try:
-        conn = get_connection()
-        rows = conn.execute(
-            """SELECT role, content FROM conversations
-               WHERE session_id = ?
-               ORDER BY timestamp DESC LIMIT ?""",
-            (SESSION_ID, effective_limit),
-        ).fetchall()
+        sb = get_supabase()
 
+        # Try current session first
+        result = (
+            sb.table("conversations")
+            .select("role, content")
+            .eq("session_id", SESSION_ID)
+            .order("timestamp", desc=True)
+            .limit(effective_limit)
+            .execute()
+        )
+
+        rows = result.data
         if not rows:
-            # No messages in current session — load last few from previous session
-            rows = conn.execute(
-                """SELECT role, content FROM conversations
-                   WHERE session_id != ?
-                   ORDER BY timestamp DESC LIMIT ?""",
-                (SESSION_ID, effective_limit),
-            ).fetchall()
+            # No messages in current session — load last few from any session
+            result = (
+                sb.table("conversations")
+                .select("role, content")
+                .neq("session_id", SESSION_ID)
+                .order("timestamp", desc=True)
+                .limit(effective_limit)
+                .execute()
+            )
+            rows = result.data
 
         # Rows come newest-first; reverse to chronological order
         return [{"role": row["role"], "content": row["content"]} for row in reversed(rows)]
@@ -93,8 +101,8 @@ def _build_memory_context(text: str) -> str:
     """
     Build a RAG context string from semantic search and recent memories.
 
-    Queries ChromaDB for semantically relevant memories and appends
-    recent stored facts, filtering by relevance threshold.
+    Queries pgvector for semantically relevant memories and appends
+    recent stored facts, filtering by similarity threshold.
     """
     context_parts: list[str] = []
 
@@ -104,7 +112,7 @@ def _build_memory_context(text: str) -> str:
         if results:
             relevant = [
                 r["document"] for r in results
-                if r["distance"] < RAG_DISTANCE_THRESHOLD
+                if r["similarity"] >= RAG_SIMILARITY_THRESHOLD
             ]
             if relevant:
                 context_parts.append("Semantically relevant memories:")
@@ -204,7 +212,7 @@ def build_messages(user_text: str) -> list[dict[str, str]]:
 
     messages: list[dict[str, str]] = [{"role": "system", "content": system_content}]
 
-    # Load conversation history from SQLite
+    # Load conversation history from Supabase
     history = get_conversation_history()
     messages.extend(history)
 

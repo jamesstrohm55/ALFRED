@@ -1,21 +1,14 @@
 """
-Memory management module for A.L.F.R.E.D - persistent fact storage with SQLite + ChromaDB.
+Memory management module for A.L.F.R.E.D - persistent fact storage via Supabase.
 
-SQLite handles structured data (keys, values, categories, tags).
-ChromaDB handles vector embeddings for semantic search.
-Both stores are kept in sync via chromadb_id tracking.
+PostgreSQL handles structured data. pgvector handles semantic search.
+Embeddings are stored as a column on the memories row — no separate vector store.
 """
 from __future__ import annotations
 
-import uuid
 from typing import Any, Optional
 
-from memory.database import get_connection, init_db
-from services.embeddings_manager import (
-    store_memory_vector,
-    delete_memory_vector,
-    search_memory,
-)
+from memory.database import get_supabase, generate_embedding
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -28,59 +21,45 @@ def remember(
     tags: Optional[list[str]] = None,
 ) -> bool:
     """
-    Store a key-value pair in both SQLite and ChromaDB.
+    Store a key-value pair in Supabase with its embedding vector.
 
-    Args:
-        key: Unique identifier for this memory.
-        value: The fact/value to remember.
-        category: Category for organisation (general, personal, preference, etc.).
-        tags: Optional list of tags for filtering.
-
-    Returns:
-        True if stored successfully.
+    Upserts on key — overwrites if the key already exists.
     """
-    conn = get_connection()
-    chromadb_id = str(uuid.uuid4())
     tags_str = ",".join(tags) if tags else ""
 
     try:
-        conn.execute(
-            """INSERT INTO memories (key, value, category, tags, chromadb_id)
-               VALUES (?, ?, ?, ?, ?)
-               ON CONFLICT(key) DO UPDATE SET
-                   value = excluded.value,
-                   category = excluded.category,
-                   tags = excluded.tags,
-                   chromadb_id = excluded.chromadb_id,
-                   updated_at = CURRENT_TIMESTAMP""",
-            (key, value, category, tags_str, chromadb_id),
-        )
-        conn.commit()
+        embedding = generate_embedding(f"{key} is {value}")
     except Exception as e:
-        logger.error(f"Failed to store memory in SQLite: {e}")
-        return False
+        logger.warning(f"Failed to generate embedding: {e}")
+        embedding = None
 
-    # Store in vector database for semantic search
+    row = {
+        "key": key,
+        "value": value,
+        "category": category,
+        "tags": tags_str,
+        "updated_at": "now()",
+    }
+    if embedding is not None:
+        row["embedding"] = embedding
+
     try:
-        store_memory_vector(
-            f"{key} is {value}",
-            memory_id=chromadb_id,
-            metadata={"key": key, "category": category},
-        )
+        sb = get_supabase()
+        sb.table("memories").upsert(row, on_conflict="key").execute()
+        return True
     except Exception as e:
-        logger.warning(f"Failed to store in vector database: {e}")
-
-    return True
+        logger.error(f"Failed to store memory: {e}")
+        return False
 
 
 def recall(key: str) -> Optional[str]:
     """Retrieve a value from memory by key."""
-    conn = get_connection()
     try:
-        row = conn.execute(
-            "SELECT value FROM memories WHERE key = ?", (key,)
-        ).fetchone()
-        return row["value"] if row else None
+        sb = get_supabase()
+        result = sb.table("memories").select("value").eq("key", key).execute()
+        if result.data:
+            return result.data[0]["value"]
+        return None
     except Exception as e:
         logger.error(f"Failed to recall memory: {e}")
         return None
@@ -88,32 +67,15 @@ def recall(key: str) -> Optional[str]:
 
 def forget(key: str) -> bool:
     """
-    Remove a key from both SQLite and ChromaDB.
+    Remove a key from Supabase.
 
-    Fixes the previous sync bug where forget only removed from JSON.
+    Embedding is deleted automatically since it's a column on the same row.
+    No sync bug possible.
     """
-    conn = get_connection()
     try:
-        row = conn.execute(
-            "SELECT chromadb_id FROM memories WHERE key = ?", (key,)
-        ).fetchone()
-
-        if row is None:
-            return False
-
-        chromadb_id = row["chromadb_id"]
-
-        conn.execute("DELETE FROM memories WHERE key = ?", (key,))
-        conn.commit()
-
-        # Delete from ChromaDB too
-        if chromadb_id:
-            try:
-                delete_memory_vector(chromadb_id)
-            except Exception as e:
-                logger.warning(f"Failed to delete vector for '{key}': {e}")
-
-        return True
+        sb = get_supabase()
+        result = sb.table("memories").delete().eq("key", key).execute()
+        return len(result.data) > 0
     except Exception as e:
         logger.error(f"Failed to forget memory: {e}")
         return False
@@ -126,43 +88,50 @@ def list_memory(category: Optional[str] = None) -> dict[str, Any]:
     Args:
         category: Optional category filter. If None, returns all.
     """
-    conn = get_connection()
     try:
+        sb = get_supabase()
+        query = sb.table("memories").select("key, value").order("updated_at", desc=True)
         if category:
-            rows = conn.execute(
-                "SELECT key, value FROM memories WHERE category = ? ORDER BY updated_at DESC",
-                (category,),
-            ).fetchall()
-        else:
-            rows = conn.execute(
-                "SELECT key, value FROM memories ORDER BY updated_at DESC"
-            ).fetchall()
-        return {row["key"]: row["value"] for row in rows}
+            query = query.eq("category", category)
+        result = query.execute()
+        return {row["key"]: row["value"] for row in result.data}
     except Exception as e:
         logger.error(f"Failed to list memories: {e}")
         return {}
 
 
 def semantic_search_memory(
-    query: str, n_results: int = 3
+    query: str, n_results: int = 5
 ) -> Optional[list[dict[str, Any]]]:
     """
-    Search memory using semantic similarity via ChromaDB.
+    Search memory using semantic similarity via pgvector.
 
-    Returns list of dicts with 'document' and 'distance' keys,
+    Returns list of dicts with 'document', 'similarity', 'key', 'category' keys,
     or None if no matches found.
     """
     try:
-        results: dict[str, Any] = search_memory(query, n_results)
-        documents: list[str] = results.get("documents", [[]])[0]
-        distances: list[float] = results.get("distances", [[]])[0]
+        query_embedding = generate_embedding(query)
+        sb = get_supabase()
+        result = sb.rpc(
+            "match_memories",
+            {
+                "query_embedding": query_embedding,
+                "match_threshold": 0.3,
+                "match_count": n_results,
+            },
+        ).execute()
 
-        if not documents:
+        if not result.data:
             return None
 
         return [
-            {"document": doc, "distance": dist}
-            for doc, dist in zip(documents, distances)
+            {
+                "document": f"{row['key']} is {row['value']}",
+                "similarity": row["similarity"],
+                "key": row["key"],
+                "category": row["category"],
+            }
+            for row in result.data
         ]
     except Exception as e:
         logger.error(f"Semantic search failed: {e}")
@@ -171,13 +140,16 @@ def semantic_search_memory(
 
 def search_by_tag(tag: str) -> dict[str, Any]:
     """Find all memories that contain a given tag."""
-    conn = get_connection()
     try:
-        rows = conn.execute(
-            "SELECT key, value FROM memories WHERE ',' || tags || ',' LIKE ? ORDER BY updated_at DESC",
-            (f"%,{tag},%",),
-        ).fetchall()
-        return {row["key"]: row["value"] for row in rows}
+        sb = get_supabase()
+        result = (
+            sb.table("memories")
+            .select("key, value")
+            .ilike("tags", f"%{tag}%")
+            .order("updated_at", desc=True)
+            .execute()
+        )
+        return {row["key"]: row["value"] for row in result.data}
     except Exception as e:
         logger.error(f"Failed to search by tag: {e}")
         return {}
@@ -185,14 +157,15 @@ def search_by_tag(tag: str) -> dict[str, Any]:
 
 def categorize_memory(key: str, category: str) -> bool:
     """Update the category of an existing memory."""
-    conn = get_connection()
     try:
-        cursor = conn.execute(
-            "UPDATE memories SET category = ?, updated_at = CURRENT_TIMESTAMP WHERE key = ?",
-            (category, key),
+        sb = get_supabase()
+        result = (
+            sb.table("memories")
+            .update({"category": category, "updated_at": "now()"})
+            .eq("key", key)
+            .execute()
         )
-        conn.commit()
-        return cursor.rowcount > 0
+        return len(result.data) > 0
     except Exception as e:
         logger.error(f"Failed to categorize memory: {e}")
         return False
@@ -200,13 +173,19 @@ def categorize_memory(key: str, category: str) -> bool:
 
 def get_recent_memories(limit: int = 5) -> list[dict[str, str]]:
     """Get the most recently updated memories."""
-    conn = get_connection()
     try:
-        rows = conn.execute(
-            "SELECT key, value, category FROM memories ORDER BY updated_at DESC LIMIT ?",
-            (limit,),
-        ).fetchall()
-        return [{"key": row["key"], "value": row["value"], "category": row["category"]} for row in rows]
+        sb = get_supabase()
+        result = (
+            sb.table("memories")
+            .select("key, value, category")
+            .order("updated_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return [
+            {"key": row["key"], "value": row["value"], "category": row["category"]}
+            for row in result.data
+        ]
     except Exception as e:
         logger.error(f"Failed to get recent memories: {e}")
         return []

@@ -1,7 +1,7 @@
 """
-Memory package for A.L.F.R.E.D - persistent fact storage with SQLite + ChromaDB.
+Memory package for A.L.F.R.E.D - persistent fact storage via Supabase (PostgreSQL + pgvector).
 """
-from memory.database import init_db, migrate_from_json, get_connection
+from memory.database import get_supabase, generate_embedding, check_connection
 from memory.memory_manager import (
     remember,
     recall,
@@ -14,9 +14,9 @@ from memory.memory_manager import (
 )
 
 __all__ = [
-    "init_db",
-    "migrate_from_json",
-    "get_connection",
+    "get_supabase",
+    "generate_embedding",
+    "check_connection",
     "remember",
     "recall",
     "forget",
