@@ -11,7 +11,9 @@ A.L.F.R.E.D is a modular, intelligent, and voice-enabled personal assistant insp
 ### Core Capabilities
 - **Voice Interaction**: Speech recognition and synthesis with ElevenLabs (pyttsx3 offline fallback)
 - **LLM-Powered Conversations**: Multi-layered LLM fallback (OpenAI, OpenRouter, Claude)
-- **Memory System**: Store, recall, forget, and list facts with semantic search (ChromaDB)
+- **Memory System**: Store, recall, forget, and list facts with semantic search (Supabase + pgvector)
+- **RAG Integration**: Relevant memories automatically injected into LLM conversations
+- **Conversation Persistence**: Chat history stored in Supabase, persists across sessions
 - **System Monitoring**: Real-time CPU, RAM, Disk usage, uptime, and OS info
 - **Weather Reports**: Get weather updates based on your location
 - **Calendar Management**: Google Calendar integration for events
@@ -39,7 +41,9 @@ ALFRED/
 │   └── voice.py                    # Text-to-speech (ElevenLabs + pyttsx3)
 │
 ├── memory/                         # Persistent memory system
-│   └── memory_manager.py           # JSON + ChromaDB storage
+│   ├── __init__.py                 # Package exports
+│   ├── database.py                 # Supabase client + embedding helper
+│   └── memory_manager.py           # Memory CRUD via Supabase REST API
 │
 ├── service_commands/               # Modular command handlers
 │   ├── calendar_commands.py
@@ -51,7 +55,7 @@ ALFRED/
 ├── services/                       # System & external services
 │   ├── automation.py               # System commands
 │   ├── calendar_service.py         # Google Calendar API
-│   ├── embeddings_manager.py       # ChromaDB vector storage
+│   ├── embeddings_manager.py       # OpenAI embedding generation
 │   ├── file_assistant.py           # File operations
 │   ├── system_monitor.py           # System stats
 │   └── weather_service.py          # OpenWeather API
@@ -77,9 +81,8 @@ ALFRED/
 ├── utils/                          # Utility modules
 │   └── logger.py                   # Centralized logging system
 │
-├── data/                           # Data storage (gitignored)
-│   ├── memory.json                 # Persistent memory
-│   └── embeddings_db/              # ChromaDB database
+├── data/                           # Local data (gitignored)
+│   └── settings.json               # Local settings
 │
 ├── logs/                           # Application logs (auto-created)
 │   └── alfred_YYYYMMDD.log         # Daily log files
@@ -137,16 +140,79 @@ XI_VOICE_ID=your_elevenlabs_voice_id
 
 # OpenWeather
 WEATHER_API_KEY=your_openweather_api_key
+
+# Supabase (memory & conversation storage)
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_KEY=your_supabase_anon_key
 ```
 
-### 5. Set Up Google Calendar (Optional)
+### 5. Set Up Supabase
+
+1. Create a free project at [supabase.com](https://supabase.com)
+2. Go to **Database → Extensions** and enable the `vector` extension
+3. Go to **SQL Editor → New Query** and run this schema:
+
+```sql
+create extension if not exists vector;
+
+create table memories (
+  id bigint generated always as identity primary key,
+  key text unique not null,
+  value text not null,
+  category text default 'general',
+  tags text default '',
+  embedding vector(1536),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table conversations (
+  id bigint generated always as identity primary key,
+  session_id text not null,
+  role text not null,
+  content text not null,
+  timestamp timestamptz default now()
+);
+
+create table memory_metadata (
+  key text primary key,
+  value text not null
+);
+
+create index idx_memories_key on memories(key);
+create index idx_memories_category on memories(category);
+create index idx_conversations_session on conversations(session_id);
+create index idx_conversations_timestamp on conversations(timestamp);
+
+create or replace function match_memories(
+  query_embedding vector(1536),
+  match_threshold float default 0.5,
+  match_count int default 5
+)
+returns table (
+  id bigint, key text, value text, category text, similarity float
+)
+language sql stable
+as $$
+  select memories.id, memories.key, memories.value, memories.category,
+    1 - (memories.embedding <=> query_embedding) as similarity
+  from memories
+  where 1 - (memories.embedding <=> query_embedding) > match_threshold
+  order by memories.embedding <=> query_embedding
+  limit match_count;
+$$;
+```
+
+4. Copy your **Project URL** and **anon key** from **Settings → API** into your `.env`
+
+### 6. Set Up Google Calendar (Optional)
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project and enable the Google Calendar API
 3. Download `credentials.json` and place it in the project root
 4. On first run, you'll be prompted to authorize access
 
-### 6. Run Application
+### 7. Run Application
 
 **GUI Mode (Recommended):**
 ```bash
@@ -198,6 +264,8 @@ The modern GUI features:
 | "What do you remember about my favorite color?" | Recall a fact |
 | "Forget my favorite color" | Delete a fact |
 | "What do you remember?" | List all stored facts |
+| "List personal memories" | List memories in a category |
+| "Search memory for travel" | Semantic search across memories |
 | "Tell time" | Get current time |
 | "Open browser" | Open default browser |
 | "Open VS Code" | Launch VS Code |
@@ -223,6 +291,11 @@ The modern GUI features:
 - [x] Optimized system monitoring (non-blocking CPU measurement)
 - [x] Natural language calendar commands
 - [x] File search with path validation and cancellation
+- [x] Cloud-backed memory via Supabase (PostgreSQL + pgvector)
+- [x] RAG — memories injected into LLM conversations
+- [x] Conversation persistence across sessions
+- [x] Semantic memory search command
+- [x] Auto-categorization of memories (personal, preference, general)
 - [ ] Email integration
 - [ ] Smart notification system
 - [ ] Advanced file manager with suggestions
