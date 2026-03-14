@@ -25,28 +25,47 @@ _REQUEST_TIMEOUT: int = 10  # seconds
 _location_cache: dict[str, Any] = {"data": None, "timestamp": 0}
 _weather_cache: dict[str, dict[str, Any]] = {}
 
+# Client IP for API requests (set by the FastAPI layer)
+_client_ip: str | None = None
 
-def get_location_from_ip() -> tuple[str, str] | None:
+
+def set_client_ip(ip: str | None) -> None:
+    """Set the client IP for geolocation (called by the API layer)."""
+    global _client_ip
+    _client_ip = ip
+
+
+def get_location_from_ip(client_ip: str | None = None) -> tuple[str, str] | None:
     """
-    Get user's location from IP address for weather lookups.
+    Get location from IP address for weather lookups.
+
+    Args:
+        client_ip: Optional client IP to geolocate instead of the server's own IP.
 
     Returns cached location if available and not expired.
     """
     current_time: float = time.time()
+    cache_key = client_ip or "self"
 
     # Check cache
-    if _location_cache["data"] is not None and current_time - _location_cache["timestamp"] < _LOCATION_CACHE_TTL:
+    if (
+        _location_cache["data"] is not None
+        and current_time - _location_cache["timestamp"] < _LOCATION_CACHE_TTL
+        and _location_cache.get("ip") == cache_key
+    ):
         logger.debug("Using cached location data")
         return _location_cache["data"]
 
     try:
-        response = requests.get("http://ip-api.com/json/", timeout=_REQUEST_TIMEOUT)
+        url = f"http://ip-api.com/json/{client_ip}" if client_ip else "http://ip-api.com/json/"
+        response = requests.get(url, timeout=_REQUEST_TIMEOUT)
         data: dict[str, Any] = response.json()
         if data["status"] == "success":
             location: tuple[str, str] = (data["city"], data["country"])
             # Update cache
             _location_cache["data"] = location
             _location_cache["timestamp"] = current_time
+            _location_cache["ip"] = cache_key
             return location
     except requests.RequestException as e:
         logger.warning(f"Could not determine location from IP: {e}")

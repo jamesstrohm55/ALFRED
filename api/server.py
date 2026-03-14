@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 
-from fastapi import FastAPI, Query, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.models import (
@@ -46,7 +46,13 @@ app.add_middleware(
 
 
 @app.post("/chat", response_model=ChatResponse)
-def chat(req: ChatRequest):
+def chat(req: ChatRequest, request: Request):
+    # Store client IP so weather geolocation uses the caller's location, not the server's
+    from services.weather_service import set_client_ip
+
+    client_ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or request.client.host
+    set_client_ip(client_ip)
+
     try:
         response = get_response(req.message)
     except Exception as e:

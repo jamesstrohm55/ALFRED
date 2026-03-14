@@ -4,7 +4,7 @@ Weather command handler for A.L.F.R.E.D - processes weather-related queries.
 
 from __future__ import annotations
 
-from services.weather_service import get_location_from_ip, get_weather
+from services.weather_service import _client_ip, get_location_from_ip, get_weather
 
 
 def handle_weather_command(user_input: str) -> str | None:
@@ -36,7 +36,7 @@ def handle_weather_command(user_input: str) -> str | None:
         if len(parts) > 1:
             location = parts[1].strip()
         else:
-            location = get_location_from_ip()
+            location = get_location_from_ip(client_ip=_client_ip)
             if not location:
                 return "Could not determine your location. Please specify a city."
 
