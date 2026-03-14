@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import os
 
-from core.voice import speak
 from services.file_assistant import delete_file, find_file, list_files_in_folder, open_file_or_folder
 
 
@@ -26,6 +25,8 @@ def handle_file_command(user_input: str) -> str | list[str] | None:
         filename: str = user_input.replace("find ", "").strip()
         results: list[str] = find_file(filename)
         if results:
+            from core.voice import speak
+
             speak(f"I found {len(results)} result(s).")
             return results[:5]  # Return only the first 5 results for brevity
         else:
@@ -50,6 +51,8 @@ def handle_file_command(user_input: str) -> str | list[str] | None:
 
         if matches:
             file_to_delete: str = matches[0]
+            from core.voice import speak
+
             speak("Are you sure you want to delete this file?")
             confirm: str = input("Type yes to confirm or no to cancel: ").strip().lower()
             if confirm == "yes":
