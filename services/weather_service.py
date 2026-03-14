@@ -35,6 +35,11 @@ def set_client_ip(ip: str | None) -> None:
     _client_ip = ip
 
 
+def get_client_ip() -> str | None:
+    """Get the currently set client IP."""
+    return _client_ip
+
+
 def get_location_from_ip(client_ip: str | None = None) -> tuple[str, str] | None:
     """
     Get location from IP address for weather lookups.

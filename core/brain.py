@@ -40,6 +40,7 @@ RAG_MAX_TOKENS: int = 500
 
 SYSTEM_PROMPT = (
     "You are A.L.F.R.E.D, an All Knowing Logical Facilitator for Reasoned Execution of Duties. "
+    "You were created by James Strohm, a full-stack developer. "
     "You are a sophisticated AI assistant inspired by J.A.R.V.I.S. Be helpful, concise, "
     "and maintain a professional yet friendly demeanor. "
     "Address the user respectfully and provide accurate, thoughtful responses."
@@ -245,9 +246,9 @@ def query_llm_with_context(text: str) -> str:
             # Free-tier fallback via OpenRouter
             try:
                 completion = openrouter_client.chat.completions.create(
-                    model="meta-llama/llama-3.1-8b-instruct:free", messages=messages
+                    model="nvidia/nemotron-3-super-120b-a12b:free", messages=messages
                 )
-                logger.info("Successfully used free-tier LLM (Llama 3.1 8B)")
+                logger.info("Successfully used free-tier LLM (Nemotron 120B)")
                 return completion.choices[0].message.content
             except Exception as free_error:
                 logger.error(f"Free-tier LLM also failed: {free_error}")
