@@ -235,11 +235,11 @@ def query_llm_with_context(text: str) -> str:
     # Try free-tier first to avoid burning credits
     try:
         completion = openrouter_client.chat.completions.create(
-            model="nvidia/nemotron-3-super-120b-a12b:free", messages=messages
+            model="nvidia/nemotron-3-nano-30b-a3b:free", messages=messages
         )
         return completion.choices[0].message.content
     except Exception as free_error:
-        logger.warning(f"Free-tier LLM (Nemotron 120B) failed: {free_error}")
+        logger.warning(f"Free-tier LLM (Nemotron 30B) failed: {free_error}")
 
     try:
         completion = openrouter_client.chat.completions.create(model="anthropic/claude-3.5-sonnet", messages=messages)
