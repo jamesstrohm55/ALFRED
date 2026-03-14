@@ -229,27 +229,25 @@ def query_llm_with_context(text: str) -> str:
 
     openrouter_client = OpenAI(api_key=OPENROUTER_API_KEY, base_url="https://openrouter.ai/api/v1")
 
+    # Try free-tier first to avoid burning credits
+    try:
+        completion = openrouter_client.chat.completions.create(
+            model="nvidia/nemotron-3-super-120b-a12b:free", messages=messages
+        )
+        return completion.choices[0].message.content
+    except Exception as free_error:
+        logger.warning(f"Free-tier LLM (Nemotron 120B) failed: {free_error}")
+
     try:
         completion = openrouter_client.chat.completions.create(model="anthropic/claude-3.5-sonnet", messages=messages)
         return completion.choices[0].message.content
-
     except Exception as e:
         logger.warning(f"Primary LLM (Claude 3.5 Sonnet) failed: {e}")
-        # Fallback to OpenAI
-        try:
-            completion = client.chat.completions.create(model="gpt-4o-mini", messages=messages)
-            logger.info("Successfully used fallback LLM (GPT-4o-mini)")
-            return completion.choices[0].message.content
 
-        except Exception as fallback_error:
-            logger.warning(f"Fallback LLM (GPT-4o-mini) also failed: {fallback_error}")
-            # Free-tier fallback via OpenRouter
-            try:
-                completion = openrouter_client.chat.completions.create(
-                    model="nvidia/nemotron-3-super-120b-a12b:free", messages=messages
-                )
-                logger.info("Successfully used free-tier LLM (Nemotron 120B)")
-                return completion.choices[0].message.content
-            except Exception as free_error:
-                logger.error(f"Free-tier LLM also failed: {free_error}")
+    try:
+        completion = client.chat.completions.create(model="gpt-4o-mini", messages=messages)
+        logger.info("Successfully used fallback LLM (GPT-4o-mini)")
+        return completion.choices[0].message.content
+    except Exception as fallback_error:
+        logger.error(f"Fallback LLM (GPT-4o-mini) also failed: {fallback_error}")
                 return "Sorry, I couldn't process your request with any available models."
