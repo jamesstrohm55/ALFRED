@@ -250,4 +250,4 @@ def query_llm_with_context(text: str) -> str:
         return completion.choices[0].message.content
     except Exception as fallback_error:
         logger.error(f"Fallback LLM (GPT-4o-mini) also failed: {fallback_error}")
-                return "Sorry, I couldn't process your request with any available models."
+        return "Sorry, I couldn't process your request with any available models."
