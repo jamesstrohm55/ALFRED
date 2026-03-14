@@ -241,5 +241,14 @@ def query_llm_with_context(text: str) -> str:
             return completion.choices[0].message.content
 
         except Exception as fallback_error:
-            logger.error(f"Fallback LLM also failed: {fallback_error}")
-            return "Sorry, I couldn't process your request with any available models."
+            logger.warning(f"Fallback LLM (GPT-4o-mini) also failed: {fallback_error}")
+            # Free-tier fallback via OpenRouter
+            try:
+                completion = openrouter_client.chat.completions.create(
+                    model="meta-llama/llama-3.1-8b-instruct:free", messages=messages
+                )
+                logger.info("Successfully used free-tier LLM (Llama 3.1 8B)")
+                return completion.choices[0].message.content
+            except Exception as free_error:
+                logger.error(f"Free-tier LLM also failed: {free_error}")
+                return "Sorry, I couldn't process your request with any available models."
