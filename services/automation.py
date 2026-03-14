@@ -7,12 +7,13 @@ import os
 import webbrowser
 import datetime
 import difflib
-from pathlib import Path
 from typing import Callable, Optional
 
 from config import MUSIC_PATH
+from memory.database import get_supabase
+from utils.logger import get_logger
 
-LOG_PATH: Path = Path("command_log.txt")
+logger = get_logger(__name__)
 
 # === Individual Command Functions ===
 
@@ -85,10 +86,12 @@ def run_command(user_input: str) -> Optional[str]:
 
 
 def log_command(input_text: str, matched_command: Optional[str] = None) -> None:
-    """Log command input and matched command to file."""
-    with open(LOG_PATH, "a", encoding="utf-8") as log:
-        timestamp: str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        log.write(f"[{timestamp}] INPUT: {input_text}\n")
-        if matched_command:
-            log.write(f"             MATCHED: {matched_command}\n")
-        log.write("\n")
+    """Log command input and matched command to Supabase."""
+    try:
+        sb = get_supabase()
+        sb.table("command_logs").insert({
+            "input_text": input_text,
+            "matched_command": matched_command,
+        }).execute()
+    except Exception as e:
+        logger.warning(f"Failed to log command: {e}")
