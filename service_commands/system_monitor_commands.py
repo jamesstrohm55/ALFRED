@@ -5,7 +5,6 @@ System monitor command handler for A.L.F.R.E.D - processes system status queries
 from __future__ import annotations
 
 from services.system_monitor import SystemStats, get_system_stats
-from ui.system_overlay import launch_system_overlay
 
 
 def handle_system_monitor_command(user_input: str) -> str | None:
@@ -45,6 +44,8 @@ def handle_system_monitor_command(user_input: str) -> str | None:
         return response
 
     if "launch system overlay" in user_input or "show monitor" in user_input:
+        from ui.system_overlay import launch_system_overlay
+
         launch_system_overlay()
         return "Launching system overlay..."
 
