@@ -1,14 +1,22 @@
 """
 Settings panel dialog for ALFRED configuration.
 """
+
 import json
 import os
-from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBox,
-    QSlider, QPushButton, QFrame, QGroupBox, QSizePolicy
-)
-from PySide6.QtCore import Signal, Qt
+
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
+from PySide6.QtWidgets import (
+    QComboBox,
+    QDialog,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QSlider,
+    QVBoxLayout,
+)
 
 from ui.styles.colors import COLORS
 
@@ -26,7 +34,7 @@ def load_settings() -> dict:
     }
     try:
         if os.path.exists(SETTINGS_PATH):
-            with open(SETTINGS_PATH, 'r') as f:
+            with open(SETTINGS_PATH) as f:
                 saved = json.load(f)
                 defaults.update(saved)
     except (json.JSONDecodeError, OSError):
@@ -37,7 +45,7 @@ def load_settings() -> dict:
 def save_settings(settings: dict):
     """Save settings to JSON file."""
     os.makedirs(os.path.dirname(SETTINGS_PATH), exist_ok=True)
-    with open(SETTINGS_PATH, 'w') as f:
+    with open(SETTINGS_PATH, "w") as f:
         json.dump(settings, f, indent=2)
 
 
@@ -58,17 +66,17 @@ class SettingsPanel(QDialog):
         self.setFixedSize(450, 500)
         self.setStyleSheet(f"""
             QDialog {{
-                background-color: {COLORS['bg_primary']};
-                color: {COLORS['text_primary']};
+                background-color: {COLORS["bg_primary"]};
+                color: {COLORS["text_primary"]};
             }}
             QGroupBox {{
-                background-color: {COLORS['bg_secondary']};
-                border: 1px solid {COLORS['border_default']};
+                background-color: {COLORS["bg_secondary"]};
+                border: 1px solid {COLORS["border_default"]};
                 border-radius: 8px;
                 margin-top: 16px;
                 padding-top: 12px;
                 font-weight: bold;
-                color: {COLORS['accent_cyan']};
+                color: {COLORS["accent_cyan"]};
             }}
             QGroupBox::title {{
                 subcontrol-origin: margin;
@@ -76,40 +84,40 @@ class SettingsPanel(QDialog):
                 padding: 0 8px;
             }}
             QComboBox {{
-                background-color: {COLORS['bg_tertiary']};
-                color: {COLORS['text_primary']};
-                border: 1px solid {COLORS['border_default']};
+                background-color: {COLORS["bg_tertiary"]};
+                color: {COLORS["text_primary"]};
+                border: 1px solid {COLORS["border_default"]};
                 border-radius: 6px;
                 padding: 6px 12px;
                 min-width: 200px;
             }}
             QComboBox:hover {{
-                border-color: {COLORS['accent_cyan']};
+                border-color: {COLORS["accent_cyan"]};
             }}
             QComboBox::drop-down {{
                 border: none;
                 width: 24px;
             }}
             QComboBox QAbstractItemView {{
-                background-color: {COLORS['bg_tertiary']};
-                color: {COLORS['text_primary']};
-                border: 1px solid {COLORS['border_default']};
-                selection-background-color: {COLORS['bg_hover']};
+                background-color: {COLORS["bg_tertiary"]};
+                color: {COLORS["text_primary"]};
+                border: 1px solid {COLORS["border_default"]};
+                selection-background-color: {COLORS["bg_hover"]};
             }}
             QSlider::groove:horizontal {{
                 height: 6px;
-                background-color: {COLORS['bg_tertiary']};
+                background-color: {COLORS["bg_tertiary"]};
                 border-radius: 3px;
             }}
             QSlider::handle:horizontal {{
-                background-color: {COLORS['accent_cyan']};
+                background-color: {COLORS["accent_cyan"]};
                 width: 16px;
                 height: 16px;
                 margin: -5px 0;
                 border-radius: 8px;
             }}
             QSlider::sub-page:horizontal {{
-                background-color: {COLORS['accent_cyan_dim']};
+                background-color: {COLORS["accent_cyan_dim"]};
                 border-radius: 3px;
             }}
         """)
@@ -130,23 +138,27 @@ class SettingsPanel(QDialog):
 
         llm_layout.addWidget(QLabel("Primary Model:"))
         self.primary_model = QComboBox()
-        self.primary_model.addItems([
-            "anthropic/claude-3.5-sonnet",
-            "anthropic/claude-3-haiku",
-            "openai/gpt-4o",
-            "openai/gpt-4o-mini",
-            "google/gemini-pro",
-        ])
+        self.primary_model.addItems(
+            [
+                "anthropic/claude-3.5-sonnet",
+                "anthropic/claude-3-haiku",
+                "openai/gpt-4o",
+                "openai/gpt-4o-mini",
+                "google/gemini-pro",
+            ]
+        )
         llm_layout.addWidget(self.primary_model)
 
         llm_layout.addWidget(QLabel("Fallback Model:"))
         self.fallback_model = QComboBox()
-        self.fallback_model.addItems([
-            "openai/gpt-4o-mini",
-            "anthropic/claude-3-haiku",
-            "openai/gpt-4o",
-            "anthropic/claude-3.5-sonnet",
-        ])
+        self.fallback_model.addItems(
+            [
+                "openai/gpt-4o-mini",
+                "anthropic/claude-3-haiku",
+                "openai/gpt-4o",
+                "anthropic/claude-3.5-sonnet",
+            ]
+        )
         llm_layout.addWidget(self.fallback_model)
 
         # Max history
@@ -160,9 +172,7 @@ class SettingsPanel(QDialog):
         self.max_history = QSlider(Qt.Horizontal)
         self.max_history.setRange(5, 50)
         self.max_history.setValue(10)
-        self.max_history.valueChanged.connect(
-            lambda v: self.history_value_label.setText(str(v))
-        )
+        self.max_history.valueChanged.connect(lambda v: self.history_value_label.setText(str(v)))
         llm_layout.addWidget(self.max_history)
 
         layout.addWidget(llm_group)
@@ -187,9 +197,7 @@ class SettingsPanel(QDialog):
         self.voice_rate = QSlider(Qt.Horizontal)
         self.voice_rate.setRange(50, 200)
         self.voice_rate.setValue(100)
-        self.voice_rate.valueChanged.connect(
-            lambda v: self.rate_value_label.setText(str(v))
-        )
+        self.voice_rate.valueChanged.connect(lambda v: self.rate_value_label.setText(str(v)))
         voice_layout.addWidget(self.voice_rate)
 
         layout.addWidget(voice_group)
@@ -205,13 +213,13 @@ class SettingsPanel(QDialog):
         cancel_btn.setCursor(Qt.PointingHandCursor)
         cancel_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {COLORS['bg_tertiary']};
-                color: {COLORS['text_primary']};
-                border: 1px solid {COLORS['border_default']};
+                background-color: {COLORS["bg_tertiary"]};
+                color: {COLORS["text_primary"]};
+                border: 1px solid {COLORS["border_default"]};
                 border-radius: 6px;
             }}
             QPushButton:hover {{
-                background-color: {COLORS['bg_hover']};
+                background-color: {COLORS["bg_hover"]};
             }}
         """)
         cancel_btn.clicked.connect(self.reject)
@@ -221,14 +229,14 @@ class SettingsPanel(QDialog):
         apply_btn.setCursor(Qt.PointingHandCursor)
         apply_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {COLORS['accent_cyan']};
-                color: {COLORS['bg_primary']};
+                background-color: {COLORS["accent_cyan"]};
+                color: {COLORS["bg_primary"]};
                 border: none;
                 border-radius: 6px;
                 font-weight: bold;
             }}
             QPushButton:hover {{
-                background-color: {COLORS['accent_cyan_dim']};
+                background-color: {COLORS["accent_cyan_dim"]};
             }}
         """)
         apply_btn.clicked.connect(self._apply_settings)

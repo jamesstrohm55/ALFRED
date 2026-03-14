@@ -1,13 +1,15 @@
 """
 System monitoring service for A.L.F.R.E.D - provides real-time system statistics.
 """
+
 from __future__ import annotations
 
-import psutil
-import platform
 import datetime
 import os
-from typing import Any, TypedDict
+import platform
+from typing import TypedDict
+
+import psutil
 
 from utils.logger import get_logger
 
@@ -20,6 +22,7 @@ _cpu_initialized: bool = False
 
 class SystemStats(TypedDict):
     """Type definition for system statistics dictionary."""
+
     cpu_percent: float
     ram_percent: float
     ram_used_gb: float
@@ -35,7 +38,7 @@ class SystemStats(TypedDict):
 def _get_disk_path() -> str:
     """Get the appropriate disk path for the current OS."""
     if platform.system() == "Windows":
-        return os.environ.get("SystemDrive", "C:")
+        return os.environ.get("SYSTEMDRIVE", "C:")
     return "/"
 
 
@@ -63,20 +66,22 @@ def get_system_stats() -> SystemStats:
         disk = psutil.disk_usage(_get_disk_path())
     except OSError as e:
         logger.warning(f"Could not get disk usage: {e}")
-        disk = type('obj', (object,), {'percent': 0, 'used': 0, 'total': 0})()
+        disk = type("obj", (object,), {"percent": 0, "used": 0, "total": 0})()
 
-    uptime_seconds: float = (datetime.datetime.now() - datetime.datetime.fromtimestamp(psutil.boot_time())).total_seconds()
+    uptime_seconds: float = (
+        datetime.datetime.now() - datetime.datetime.fromtimestamp(psutil.boot_time())
+    ).total_seconds()
     uptime: str = str(datetime.timedelta(seconds=int(uptime_seconds)))
 
     return {
         "cpu_percent": cpu,
         "ram_percent": ram.percent,
-        "ram_used_gb": round(ram.used / (1024 ** 3), 2),
+        "ram_used_gb": round(ram.used / (1024**3), 2),
         "ram_total_gb": round(ram.total / (1024**3), 2),
         "disk_percent": disk.percent,
-        "disk_used_gb": round(disk.used / (1024 ** 3), 2),
-        "disk_total_gb": round(disk.total / (1024 ** 3), 2),
+        "disk_used_gb": round(disk.used / (1024**3), 2),
+        "disk_total_gb": round(disk.total / (1024**3), 2),
         "uptime": uptime,
         "os": platform.system(),
-        "os_version": platform.version()
+        "os_version": platform.version(),
     }

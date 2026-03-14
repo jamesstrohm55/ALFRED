@@ -3,34 +3,37 @@ Voice synthesis module for A.L.F.R.E.D - handles text-to-speech with ElevenLabs 
 
 Uses lazy initialization to improve startup time.
 """
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import NDArray
-from config import ELEVENLABS_KEY, ALFRED_VOICE_ID, VOICE_RATE
+
+from config import ALFRED_VOICE_ID, ELEVENLABS_KEY, VOICE_RATE
 from utils.logger import get_logger
 
 if TYPE_CHECKING:
     import pyttsx3
     from elevenlabs import ElevenLabs
+
     from ui.signals import GlobalSignals
 
 logger = get_logger(__name__)
 
 # Flag to track if GUI signals are available
 _gui_signals_available: bool = False
-_gui_signals: Optional[GlobalSignals] = None
+_gui_signals: GlobalSignals | None = None
 
 # Lazy-initialized TTS engines
-_elevenlabs_client: Optional[ElevenLabs] = None
+_elevenlabs_client: ElevenLabs | None = None
 _elevenlabs_initialized: bool = False
-_tts_engine: Optional[pyttsx3.Engine] = None
+_tts_engine: pyttsx3.Engine | None = None
 _tts_initialized: bool = False
 
 
-def _get_elevenlabs_client() -> Optional[ElevenLabs]:
+def _get_elevenlabs_client() -> ElevenLabs | None:
     """Lazy initialization of ElevenLabs client."""
     global _elevenlabs_client, _elevenlabs_initialized
 
@@ -42,6 +45,7 @@ def _get_elevenlabs_client() -> Optional[ElevenLabs]:
     if ELEVENLABS_KEY and ALFRED_VOICE_ID:
         try:
             from elevenlabs import ElevenLabs
+
             _elevenlabs_client = ElevenLabs(api_key=ELEVENLABS_KEY)
             logger.debug("ElevenLabs client initialized")
         except Exception as e:
@@ -51,7 +55,7 @@ def _get_elevenlabs_client() -> Optional[ElevenLabs]:
     return _elevenlabs_client
 
 
-def _get_tts_engine() -> Optional[pyttsx3.Engine]:
+def _get_tts_engine() -> pyttsx3.Engine | None:
     """Lazy initialization of pyttsx3 TTS engine."""
     global _tts_engine, _tts_initialized
 
@@ -62,8 +66,9 @@ def _get_tts_engine() -> Optional[pyttsx3.Engine]:
 
     try:
         import pyttsx3
+
         _tts_engine = pyttsx3.init()
-        _tts_engine.setProperty('rate', VOICE_RATE)
+        _tts_engine.setProperty("rate", VOICE_RATE)
         logger.debug("pyttsx3 engine initialized")
     except Exception as e:
         logger.warning(f"Failed to initialize pyttsx3: {e}")
@@ -77,6 +82,7 @@ def _init_gui_signals() -> None:
     global _gui_signals_available, _gui_signals
     try:
         from ui.signals import signals
+
         _gui_signals = signals
         _gui_signals_available = True
     except ImportError:
@@ -137,16 +143,13 @@ def speak(text: str) -> None:
     elevenlabs_client = _get_elevenlabs_client()
     if elevenlabs_client:
         try:
-            from elevenlabs import play, VoiceSettings
+            from elevenlabs import VoiceSettings, play
 
             audio = elevenlabs_client.text_to_speech.convert(
                 text=text,
                 voice_id=ALFRED_VOICE_ID,
                 model_id="eleven_turbo_v2_5",  # Updated model (free tier compatible)
-                voice_settings=VoiceSettings(
-                    stability=0.4,
-                    similarity_boost=0.75
-                )
+                voice_settings=VoiceSettings(stability=0.4, similarity_boost=0.75),
             )
 
             # Play audio directly - play() handles the generator

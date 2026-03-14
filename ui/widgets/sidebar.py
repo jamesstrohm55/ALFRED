@@ -1,11 +1,9 @@
 """
 Collapsible sidebar widget for ALFRED.
 """
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QPushButton, QSizePolicy, QFrame
-)
-from PySide6.QtCore import Signal, Qt, QPropertyAnimation, QEasingCurve, Property
-from PySide6.QtGui import QFont
+
+from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, Signal
+from PySide6.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
 from ui.styles.colors import COLORS
 from ui.utils import load_svg_icon
@@ -46,7 +44,7 @@ class CollapsibleSidebar(QWidget):
         if not collapse_icon.isNull():
             self.toggle_btn.setIcon(collapse_icon)
         else:
-            self.toggle_btn.setText("\u00AB")  # «
+            self.toggle_btn.setText("\u00ab")  # «
         self.toggle_btn.setFixedSize(28, 28)
         self.toggle_btn.setCursor(Qt.PointingHandCursor)
         self.toggle_btn.setToolTip("Toggle sidebar (Ctrl+B)")
@@ -54,14 +52,14 @@ class CollapsibleSidebar(QWidget):
         self.toggle_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: transparent;
-                color: {COLORS['text_secondary']};
+                color: {COLORS["text_secondary"]};
                 border: none;
                 border-radius: 4px;
                 font-size: 16px;
             }}
             QPushButton:hover {{
-                background-color: {COLORS['bg_hover']};
-                color: {COLORS['accent_cyan']};
+                background-color: {COLORS["bg_hover"]};
+                color: {COLORS["accent_cyan"]};
             }}
         """)
 
@@ -103,7 +101,7 @@ class CollapsibleSidebar(QWidget):
             if not expand_icon.isNull():
                 self.toggle_btn.setIcon(expand_icon)
             else:
-                self.toggle_btn.setText("\u00AB")
+                self.toggle_btn.setText("\u00ab")
         else:
             self._animation.setStartValue(self.width())
             self._animation.setEndValue(self.COLLAPSED_WIDTH)
@@ -111,7 +109,7 @@ class CollapsibleSidebar(QWidget):
             if not collapse_icon.isNull():
                 self.toggle_btn.setIcon(collapse_icon)
             else:
-                self.toggle_btn.setText("\u00BB")
+                self.toggle_btn.setText("\u00bb")
 
         self._animation.start()
 
@@ -126,10 +124,10 @@ class CollapsibleSidebar(QWidget):
         if not self._is_expanded:
             self._content_widget.hide()
         # Disconnect to avoid repeated calls
-        try:
+        import contextlib
+
+        with contextlib.suppress(RuntimeError):
             self._animation.finished.disconnect(self._on_collapsed)
-        except RuntimeError:
-            pass
 
     @property
     def is_expanded(self) -> bool:

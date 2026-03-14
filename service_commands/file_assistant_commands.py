@@ -1,16 +1,16 @@
 """
 File assistant command handler for A.L.F.R.E.D - processes file operations.
 """
+
 from __future__ import annotations
 
 import os
-from typing import Optional, Union
 
-from services.file_assistant import find_file, open_file_or_folder, delete_file, list_files_in_folder
 from core.voice import speak
+from services.file_assistant import delete_file, find_file, list_files_in_folder, open_file_or_folder
 
 
-def handle_file_command(user_input: str) -> Optional[Union[str, list[str]]]:
+def handle_file_command(user_input: str) -> str | list[str] | None:
     """
     Handle file-related commands (find, open, delete, list).
 

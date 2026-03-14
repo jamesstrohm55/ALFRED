@@ -1,7 +1,9 @@
 """
 Command processing worker for handling ALFRED commands in a thread pool.
 """
+
 from PySide6.QtCore import QObject, QRunnable, Signal, Slot
+
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -10,12 +12,12 @@ logger = get_logger(__name__)
 class WorkerSignals(QObject):
     """Signals for the command worker."""
 
-    started = Signal()                    # Emitted when processing starts
-    finished = Signal(str)                # Emitted with response text
-    error = Signal(str)                   # Emitted with error message
-    speaking_started = Signal()           # Emitted when TTS begins
-    speaking_finished = Signal()          # Emitted when TTS ends
-    progress = Signal(str)                # Emitted for progress updates
+    started = Signal()  # Emitted when processing starts
+    finished = Signal(str)  # Emitted with response text
+    error = Signal(str)  # Emitted with error message
+    speaking_started = Signal()  # Emitted when TTS begins
+    speaking_finished = Signal()  # Emitted when TTS ends
+    progress = Signal(str)  # Emitted for progress updates
 
 
 def execute_command(command: str) -> str:
@@ -52,6 +54,7 @@ def speak_with_signals(response: str, signals: WorkerSignals):
     try:
         signals.speaking_started.emit()
         from core.voice import speak
+
         speak(response)
         signals.speaking_finished.emit()
     except (OSError, RuntimeError, ImportError) as e:

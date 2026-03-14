@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+.env
+credentials.json
+data/
+logs/
+.git/
+boot.exe
+*.pyc
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/

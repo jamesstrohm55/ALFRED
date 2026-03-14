@@ -1,14 +1,13 @@
 """
 Weather command handler for A.L.F.R.E.D - processes weather-related queries.
 """
+
 from __future__ import annotations
 
-from typing import Optional, Union
-
-from services.weather_service import get_weather, get_location_from_ip
+from services.weather_service import get_location_from_ip, get_weather
 
 
-def handle_weather_command(user_input: str) -> Optional[str]:
+def handle_weather_command(user_input: str) -> str | None:
     """
     Handle weather-related commands.
 
@@ -32,7 +31,7 @@ def handle_weather_command(user_input: str) -> Optional[str]:
 
     if any(keyword in user_input for keyword in keywords):
         parts: list[str] = user_input.split("in")
-        location: Union[str, tuple[str, str], None]
+        location: str | tuple[str, str] | None
 
         if len(parts) > 1:
             location = parts[1].strip()

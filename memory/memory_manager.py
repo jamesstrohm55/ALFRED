@@ -4,11 +4,12 @@ Memory management module for A.L.F.R.E.D - persistent fact storage via Supabase.
 PostgreSQL handles structured data. pgvector handles semantic search.
 Embeddings are stored as a column on the memories row — no separate vector store.
 """
+
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
-from memory.database import get_supabase, generate_embedding
+from memory.database import generate_embedding, get_supabase
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -18,7 +19,7 @@ def remember(
     key: str,
     value: str,
     category: str = "general",
-    tags: Optional[list[str]] = None,
+    tags: list[str] | None = None,
 ) -> bool:
     """
     Store a key-value pair in Supabase with its embedding vector.
@@ -52,7 +53,7 @@ def remember(
         return False
 
 
-def recall(key: str) -> Optional[str]:
+def recall(key: str) -> str | None:
     """Retrieve a value from memory by key."""
     try:
         sb = get_supabase()
@@ -81,7 +82,7 @@ def forget(key: str) -> bool:
         return False
 
 
-def list_memory(category: Optional[str] = None) -> dict[str, Any]:
+def list_memory(category: str | None = None) -> dict[str, Any]:
     """
     Return stored memories as a dictionary.
 
@@ -100,9 +101,7 @@ def list_memory(category: Optional[str] = None) -> dict[str, Any]:
         return {}
 
 
-def semantic_search_memory(
-    query: str, n_results: int = 5
-) -> Optional[list[dict[str, Any]]]:
+def semantic_search_memory(query: str, n_results: int = 5) -> list[dict[str, Any]] | None:
     """
     Search memory using semantic similarity via pgvector.
 
@@ -143,11 +142,7 @@ def search_by_tag(tag: str) -> dict[str, Any]:
     try:
         sb = get_supabase()
         result = (
-            sb.table("memories")
-            .select("key, value")
-            .ilike("tags", f"%{tag}%")
-            .order("updated_at", desc=True)
-            .execute()
+            sb.table("memories").select("key, value").ilike("tags", f"%{tag}%").order("updated_at", desc=True).execute()
         )
         return {row["key"]: row["value"] for row in result.data}
     except Exception as e:
@@ -159,12 +154,7 @@ def categorize_memory(key: str, category: str) -> bool:
     """Update the category of an existing memory."""
     try:
         sb = get_supabase()
-        result = (
-            sb.table("memories")
-            .update({"category": category, "updated_at": "now()"})
-            .eq("key", key)
-            .execute()
-        )
+        result = sb.table("memories").update({"category": category, "updated_at": "now()"}).eq("key", key).execute()
         return len(result.data) > 0
     except Exception as e:
         logger.error(f"Failed to categorize memory: {e}")
@@ -176,16 +166,9 @@ def get_recent_memories(limit: int = 5) -> list[dict[str, str]]:
     try:
         sb = get_supabase()
         result = (
-            sb.table("memories")
-            .select("key, value, category")
-            .order("updated_at", desc=True)
-            .limit(limit)
-            .execute()
+            sb.table("memories").select("key, value, category").order("updated_at", desc=True).limit(limit).execute()
         )
-        return [
-            {"key": row["key"], "value": row["value"], "category": row["category"]}
-            for row in result.data
-        ]
+        return [{"key": row["key"], "value": row["value"], "category": row["category"]} for row in result.data]
     except Exception as e:
         logger.error(f"Failed to get recent memories: {e}")
         return []

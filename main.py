@@ -1,11 +1,13 @@
 import subprocess
-from core.voice import speak
-from core.listener import listen
+
 from core.brain import get_response
+from core.listener import listen
+from core.voice import speak
 from memory.database import check_connection
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
+
 
 def boot_sequence():
     try:
@@ -13,6 +15,7 @@ def boot_sequence():
     except Exception as e:
         speak("Boot sequence failed. Please check the system.")
         raise e
+
 
 def main():
     # Verify Supabase connection on boot
@@ -38,6 +41,7 @@ def main():
 
         response = get_response(command)
         speak(response)
+
 
 if __name__ == "__main__":
     main()

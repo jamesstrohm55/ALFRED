@@ -1,66 +1,63 @@
 """
 Quick action tiles widget with SVG icons for common ALFRED commands.
 """
-from PySide6.QtWidgets import (
-    QWidget, QGridLayout, QPushButton, QVBoxLayout,
-    QLabel, QSizePolicy, QFrame
-)
-from PySide6.QtCore import Signal, Qt
+
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QFrame, QGridLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from ui.styles.colors import COLORS
 from ui.utils import load_svg_pixmap
-
 
 # Quick action definitions with SVG icon names
 QUICK_ACTIONS = [
     {
         "id": "system_status",
         "name": "System",
-        "icon": "\U0001F4CA",
+        "icon": "\U0001f4ca",
         "icon_svg": "system",
         "command": "system status",
-        "tooltip": "Check system health"
+        "tooltip": "Check system health",
     },
     {
         "id": "weather",
         "name": "Weather",
-        "icon": "\U0001F324",
+        "icon": "\U0001f324",
         "icon_svg": "weather",
         "command": "what's the weather",
-        "tooltip": "Get current weather"
+        "tooltip": "Get current weather",
     },
     {
         "id": "calendar",
         "name": "Calendar",
-        "icon": "\U0001F4C5",
+        "icon": "\U0001f4c5",
         "icon_svg": "calendar",
         "command": "what's on my calendar",
-        "tooltip": "View upcoming events"
+        "tooltip": "View upcoming events",
     },
     {
         "id": "time",
         "name": "Time",
-        "icon": "\U0001F551",
+        "icon": "\U0001f551",
         "icon_svg": "time",
         "command": "tell time",
-        "tooltip": "Get current time"
+        "tooltip": "Get current time",
     },
     {
         "id": "vscode",
         "name": "VS Code",
-        "icon": "\U0001F4BB",
+        "icon": "\U0001f4bb",
         "icon_svg": "vscode",
         "command": "open vs code",
-        "tooltip": "Launch VS Code"
+        "tooltip": "Launch VS Code",
     },
     {
         "id": "browser",
         "name": "Browser",
-        "icon": "\U0001F310",
+        "icon": "\U0001f310",
         "icon_svg": "browser",
         "command": "open browser",
-        "tooltip": "Open web browser"
+        "tooltip": "Open web browser",
     },
     {
         "id": "add_event",
@@ -68,31 +65,31 @@ QUICK_ACTIONS = [
         "icon": "\U00002795",
         "icon_svg": "add_event",
         "command": "add event",
-        "tooltip": "Create calendar event"
+        "tooltip": "Create calendar event",
     },
     {
         "id": "find_file",
         "name": "Find File",
-        "icon": "\U0001F50D",
+        "icon": "\U0001f50d",
         "icon_svg": "find_file",
         "command": "find file",
-        "tooltip": "Search for files"
+        "tooltip": "Search for files",
     },
     {
         "id": "lock",
         "name": "Lock",
-        "icon": "\U0001F512",
+        "icon": "\U0001f512",
         "icon_svg": "lock",
         "command": "lock computer",
-        "tooltip": "Lock workstation"
+        "tooltip": "Lock workstation",
     },
     {
         "id": "music",
         "name": "Music",
-        "icon": "\U0001F3B5",
+        "icon": "\U0001f3b5",
         "icon_svg": "music",
         "command": "play music",
-        "tooltip": "Play music"
+        "tooltip": "Play music",
     },
 ]
 
@@ -112,7 +109,7 @@ class ActionTile(QPushButton):
         """Set up the tile UI with SVG icon or emoji fallback."""
         self.setFixedSize(80, 80)
         self.setCursor(Qt.PointingHandCursor)
-        self.setToolTip(self._action_data.get('tooltip', ''))
+        self.setToolTip(self._action_data.get("tooltip", ""))
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 8, 4, 8)
@@ -124,21 +121,21 @@ class ActionTile(QPushButton):
         icon_label.setAlignment(Qt.AlignCenter)
         icon_label.setStyleSheet("background: transparent;")
 
-        svg_name = self._action_data.get('icon_svg', '')
+        svg_name = self._action_data.get("icon_svg", "")
         if svg_name:
             pixmap = load_svg_pixmap(svg_name, 28)
             if not pixmap.isNull():
                 icon_label.setPixmap(pixmap)
             else:
                 # Fallback to emoji
-                icon_label.setText(self._action_data.get('icon', '\U00002753'))
+                icon_label.setText(self._action_data.get("icon", "\U00002753"))
                 icon_label.setFont(QFont("Segoe UI Emoji", 24))
         else:
-            icon_label.setText(self._action_data.get('icon', '\U00002753'))
+            icon_label.setText(self._action_data.get("icon", "\U00002753"))
             icon_label.setFont(QFont("Segoe UI Emoji", 24))
 
         # Name label
-        name_label = QLabel(self._action_data.get('name', 'Action'))
+        name_label = QLabel(self._action_data.get("name", "Action"))
         name_label.setFont(QFont("Segoe UI", 8))
         name_label.setAlignment(Qt.AlignCenter)
         name_label.setStyleSheet(f"color: {COLORS['text_primary']}; background: transparent;")
@@ -150,26 +147,23 @@ class ActionTile(QPushButton):
         # Styling
         self.setStyleSheet(f"""
             QPushButton {{
-                background-color: {COLORS['bg_tertiary']};
+                background-color: {COLORS["bg_tertiary"]};
                 border: 2px solid transparent;
                 border-radius: 12px;
             }}
             QPushButton:hover {{
-                background-color: {COLORS['bg_hover']};
-                border-color: {COLORS['border_hover']};
+                background-color: {COLORS["bg_hover"]};
+                border-color: {COLORS["border_hover"]};
             }}
             QPushButton:pressed {{
-                background-color: {COLORS['bg_pressed']};
-                border-color: {COLORS['accent_cyan']};
+                background-color: {COLORS["bg_pressed"]};
+                border-color: {COLORS["accent_cyan"]};
             }}
         """)
 
     def _on_clicked(self):
         """Handle tile click."""
-        self.action_clicked.emit(
-            self._action_data.get('id', ''),
-            self._action_data.get('command', '')
-        )
+        self.action_clicked.emit(self._action_data.get("id", ""), self._action_data.get("command", ""))
 
 
 class QuickActionsWidget(QWidget):
@@ -192,9 +186,9 @@ class QuickActionsWidget(QWidget):
         title = QLabel("QUICK ACTIONS")
         title.setFont(QFont("Segoe UI", 10, QFont.Bold))
         title.setStyleSheet(f"""
-            color: {COLORS['accent_cyan']};
+            color: {COLORS["accent_cyan"]};
             padding: 8px;
-            background-color: {COLORS['bg_secondary']};
+            background-color: {COLORS["bg_secondary"]};
             border-radius: 8px;
         """)
         title.setAlignment(Qt.AlignCenter)
@@ -203,9 +197,9 @@ class QuickActionsWidget(QWidget):
         grid_frame = QFrame()
         grid_frame.setStyleSheet(f"""
             QFrame {{
-                background-color: {COLORS['bg_secondary']};
+                background-color: {COLORS["bg_secondary"]};
                 border-radius: 8px;
-                border: 1px solid {COLORS['border_default']};
+                border: 1px solid {COLORS["border_default"]};
             }}
         """)
 
@@ -234,36 +228,36 @@ class QuickActionsWidget(QWidget):
     def set_tile_enabled(self, action_id: str, enabled: bool):
         """Enable or disable a specific tile."""
         for tile in self._tiles:
-            if tile._action_data.get('id') == action_id:
+            if tile._action_data.get("id") == action_id:
                 tile.setEnabled(enabled)
                 break
 
     def highlight_tile(self, action_id: str, highlight: bool):
         """Highlight a specific tile."""
         for tile in self._tiles:
-            if tile._action_data.get('id') == action_id:
+            if tile._action_data.get("id") == action_id:
                 if highlight:
                     tile.setStyleSheet(f"""
                         QPushButton {{
-                            background-color: {COLORS['bg_hover']};
-                            border: 2px solid {COLORS['accent_cyan']};
+                            background-color: {COLORS["bg_hover"]};
+                            border: 2px solid {COLORS["accent_cyan"]};
                             border-radius: 12px;
                         }}
                     """)
                 else:
                     tile.setStyleSheet(f"""
                         QPushButton {{
-                            background-color: {COLORS['bg_tertiary']};
+                            background-color: {COLORS["bg_tertiary"]};
                             border: 2px solid transparent;
                             border-radius: 12px;
                         }}
                         QPushButton:hover {{
-                            background-color: {COLORS['bg_hover']};
-                            border-color: {COLORS['border_hover']};
+                            background-color: {COLORS["bg_hover"]};
+                            border-color: {COLORS["border_hover"]};
                         }}
                         QPushButton:pressed {{
-                            background-color: {COLORS['bg_pressed']};
-                            border-color: {COLORS['accent_cyan']};
+                            background-color: {COLORS["bg_pressed"]};
+                            border-color: {COLORS["accent_cyan"]};
                         }}
                     """)
                 break

@@ -1,12 +1,14 @@
 import tkinter as tk
 from threading import Thread
-from core.voice import speak
-from core.listener import listen
+
 from core.brain import get_response
+from core.listener import listen
+from core.voice import speak
 from services.automation import run_command
 from ui.system_overlay import launch_system_overlay
 
 launch_system_overlay()  # Start the system overlay in a separate thread
+
 
 class ALFREDGUI:
     def __init__(self, root):
@@ -64,6 +66,7 @@ class ALFREDGUI:
         response = get_response(command)
         speak(response)
         self.log.insert(tk.END, f"A.L.F.R.E.D: {response}\n")
+
 
 if __name__ == "__main__":
     root = tk.Tk()

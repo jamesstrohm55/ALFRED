@@ -1,11 +1,11 @@
 """
 Real-time audio waveform visualizer widget using QPainter.
 """
+
 import numpy as np
-from collections import deque
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout
-from PySide6.QtCore import Slot, Qt, QTimer, QRect
-from PySide6.QtGui import QPainter, QPen, QColor, QPainterPath, QFont, QLinearGradient, QBrush
+from PySide6.QtCore import Qt, QTimer, Slot
+from PySide6.QtGui import QBrush, QColor, QFont, QLinearGradient, QPainter, QPen
+from PySide6.QtWidgets import QHBoxLayout, QWidget
 
 from ui.styles.colors import COLORS
 
@@ -13,7 +13,7 @@ from ui.styles.colors import COLORS
 class WaveformWidget(QWidget):
     """Real-time audio waveform visualizer using amplitude bars."""
 
-    def __init__(self, mode: str = 'input', parent=None):
+    def __init__(self, mode: str = "input", parent=None):
         """
         Initialize the waveform widget.
 
@@ -30,11 +30,11 @@ class WaveformWidget(QWidget):
         self._simulating = False
 
         # Colors based on mode
-        if mode == 'input':
-            self._color = QColor(COLORS['waveform_input'])
+        if mode == "input":
+            self._color = QColor(COLORS["waveform_input"])
             self._label_text = "INPUT"
         else:
-            self._color = QColor(COLORS['waveform_output'])
+            self._color = QColor(COLORS["waveform_output"])
             self._label_text = "OUTPUT"
 
         self._setup_ui()
@@ -45,8 +45,8 @@ class WaveformWidget(QWidget):
         self._timer.start(33)  # ~30 FPS
 
         # Smoothing factors
-        self._attack = 0.3   # How fast bars rise
-        self._decay = 0.15   # How fast bars fall
+        self._attack = 0.3  # How fast bars rise
+        self._decay = 0.15  # How fast bars fall
 
     def _setup_ui(self):
         """Set up the widget UI."""
@@ -56,7 +56,7 @@ class WaveformWidget(QWidget):
         # Main styling
         self.setStyleSheet(f"""
             QWidget {{
-                background-color: {COLORS['waveform_bg']};
+                background-color: {COLORS["waveform_bg"]};
                 border-radius: 8px;
             }}
         """)
@@ -72,14 +72,14 @@ class WaveformWidget(QWidget):
         center_y = height // 2
 
         # Draw background
-        painter.fillRect(self.rect(), QColor(COLORS['waveform_bg']))
+        painter.fillRect(self.rect(), QColor(COLORS["waveform_bg"]))
 
         # Draw center line
-        painter.setPen(QPen(QColor(COLORS['border_default']), 1))
+        painter.setPen(QPen(QColor(COLORS["border_default"]), 1))
         painter.drawLine(0, center_y, width, center_y)
 
         # Draw mode label
-        painter.setPen(QPen(QColor(COLORS['text_disabled']), 1))
+        painter.setPen(QPen(QColor(COLORS["text_disabled"]), 1))
         painter.setFont(QFont("Segoe UI", 7, QFont.Bold))
         painter.drawText(8, 14, self._label_text)
 
@@ -87,7 +87,7 @@ class WaveformWidget(QWidget):
         self._draw_bars(painter, width, height, center_y)
 
         # Draw border
-        painter.setPen(QPen(QColor(COLORS['border_default']), 1))
+        painter.setPen(QPen(QColor(COLORS["border_default"]), 1))
         painter.drawRoundedRect(0, 0, width - 1, height - 1, 8, 8)
 
     def _draw_bars(self, painter: QPainter, width: int, height: int, center_y: int):
@@ -123,11 +123,7 @@ class WaveformWidget(QWidget):
             painter.setBrush(QBrush(bar_color))
 
             # Draw rounded rectangle bar
-            painter.drawRoundedRect(
-                int(x), int(rect_top),
-                int(bar_width), int(rect_height),
-                2, 2
-            )
+            painter.drawRoundedRect(int(x), int(rect_top), int(bar_width), int(rect_height), 2, 2)
 
     def _on_timer(self):
         """Timer callback for smooth animation."""
@@ -191,7 +187,7 @@ class WaveformWidget(QWidget):
             if start_idx < len(normalized):
                 # Use RMS (root mean square) for smoother amplitude
                 band = normalized[start_idx:end_idx]
-                rms = np.sqrt(np.mean(band ** 2))
+                rms = np.sqrt(np.mean(band**2))
                 # Apply strong boost for visibility and clamp
                 amplitude = min(1.0, rms * 8.0)
                 self._target_amplitudes[i] = amplitude
@@ -213,6 +209,7 @@ class WaveformWidget(QWidget):
     def _generate_simulated_data(self):
         """Generate random waveform-like data for simulation."""
         import random
+
         for i in range(self._num_bars):
             # Generate smooth random amplitudes
             base = 0.3 + random.random() * 0.5
@@ -243,10 +240,10 @@ class DualWaveformWidget(QWidget):
         layout.setSpacing(8)
 
         # Input waveform (microphone)
-        self.input_waveform = WaveformWidget(mode='input')
+        self.input_waveform = WaveformWidget(mode="input")
 
         # Output waveform (TTS)
-        self.output_waveform = WaveformWidget(mode='output')
+        self.output_waveform = WaveformWidget(mode="output")
 
         layout.addWidget(self.input_waveform)
         layout.addWidget(self.output_waveform)

@@ -1,7 +1,9 @@
 """
 System monitor thread for polling system statistics.
 """
+
 from PySide6.QtCore import QThread, Signal
+
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -48,19 +50,21 @@ class SystemMonitorThread(QThread):
                 logger.warning(f"System stats error ({self._error_count}): {e}")
 
                 # Emit error stats on failure
-                self.stats_updated.emit({
-                    'cpu_percent': 0,
-                    'ram_percent': 0,
-                    'ram_used_gb': 0,
-                    'ram_total_gb': 0,
-                    'disk_percent': 0,
-                    'disk_used_gb': 0,
-                    'disk_total_gb': 0,
-                    'uptime': 'Error',
-                    'os': 'Unknown',
-                    'os_version': '',
-                    'error': str(e)
-                })
+                self.stats_updated.emit(
+                    {
+                        "cpu_percent": 0,
+                        "ram_percent": 0,
+                        "ram_used_gb": 0,
+                        "ram_total_gb": 0,
+                        "disk_percent": 0,
+                        "disk_used_gb": 0,
+                        "disk_total_gb": 0,
+                        "uptime": "Error",
+                        "os": "Unknown",
+                        "os_version": "",
+                        "error": str(e),
+                    }
+                )
 
                 # Back off if too many consecutive errors
                 if self._error_count >= self._max_consecutive_errors:

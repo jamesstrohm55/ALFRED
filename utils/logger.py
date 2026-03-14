@@ -11,11 +11,10 @@ Usage:
     logger.error("Error message")
     logger.exception("Exception with traceback")
 """
+
 import logging
-import os
 from datetime import datetime
 from pathlib import Path
-
 
 # Create logs directory if it doesn't exist
 LOG_DIR = Path(__file__).parent.parent / "logs"
@@ -41,17 +40,14 @@ def _configure_root_logger():
     file_handler = logging.FileHandler(LOG_FILE, encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)
     file_formatter = logging.Formatter(
-        "%(asctime)s | %(levelname)-8s | %(name)s:%(lineno)d | %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
+        "%(asctime)s | %(levelname)-8s | %(name)s:%(lineno)d | %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
     )
     file_handler.setFormatter(file_formatter)
 
     # Console handler - less verbose
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)
-    console_formatter = logging.Formatter(
-        "%(levelname)-8s | %(message)s"
-    )
+    console_formatter = logging.Formatter("%(levelname)-8s | %(message)s")
     console_handler.setFormatter(console_formatter)
 
     root_logger.addHandler(file_handler)
@@ -73,11 +69,7 @@ def get_logger(name: str) -> logging.Logger:
     _configure_root_logger()
 
     # Create child logger under "alfred" namespace
-    if name.startswith("alfred."):
-        logger_name = name
-    else:
-        # Convert module path to logger name
-        logger_name = f"alfred.{name.replace('__', '').strip('_')}"
+    logger_name = name if name.startswith("alfred.") else f"alfred.{name.replace('__', '').strip('_')}"
 
     return logging.getLogger(logger_name)
 

@@ -1,16 +1,17 @@
 """
 Memory command handler for A.L.F.R.E.D - processes remember/recall/forget/search commands.
 """
+
 from __future__ import annotations
 
 import re
-from typing import Any, Optional
+from typing import Any
 
 from memory.memory_manager import (
-    remember,
-    recall,
     forget,
     list_memory,
+    recall,
+    remember,
     semantic_search_memory,
 )
 
@@ -25,7 +26,7 @@ def _auto_categorize(key: str, value: str) -> str:
     return "general"
 
 
-def handle_memory_commands(text: str) -> Optional[str]:
+def handle_memory_commands(text: str) -> str | None:
     """
     Handle memory-related commands (remember, recall, forget, list, search).
 
@@ -54,8 +55,12 @@ def handle_memory_commands(text: str) -> Optional[str]:
     if "what do you remember about" in lower or "what do you know about" in lower:
         key = lower.replace("what do you remember about", "").replace("what do you know about", "").strip()
         key_for_reply = key.replace("my ", "your ")
-        value: Optional[str] = recall(key)
-        return f"{key_for_reply.capitalize()} is {value}." if value else f"I don't remember anything about {key_for_reply}."
+        value: str | None = recall(key)
+        return (
+            f"{key_for_reply.capitalize()} is {value}."
+            if value
+            else f"I don't remember anything about {key_for_reply}."
+        )
 
     # Forget command
     if lower.startswith("forget"):
@@ -80,7 +85,11 @@ def handle_memory_commands(text: str) -> Optional[str]:
         return "\n".join(lines)
 
     # List memories — with optional category filter
-    if "what do you remember" in lower or "list everything you remember" in lower or re.match(r"list\s+\w+\s+memories", lower):
+    if (
+        "what do you remember" in lower
+        or "list everything you remember" in lower
+        or re.match(r"list\s+\w+\s+memories", lower)
+    ):
         # Check for category filter: "list personal memories", "list preference memories"
         cat_match = re.match(r"list\s+(\w+)\s+memories", lower)
         category = cat_match.group(1) if cat_match else None

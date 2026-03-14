@@ -2,30 +2,26 @@
 Main window for the ALFRED GUI application.
 Frameless window with custom title bar, collapsible sidebar, and status bar.
 """
-from PySide6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QFrame, QApplication, QSizeGrip
-)
-from PySide6.QtCore import Qt, Slot, QThreadPool, QSize
-from PySide6.QtGui import QFont, QKeySequence, QShortcut
 
+from PySide6.QtCore import Qt, QThreadPool, Slot
+from PySide6.QtGui import QKeySequence, QShortcut
+from PySide6.QtWidgets import QHBoxLayout, QMainWindow, QSizeGrip, QVBoxLayout, QWidget
+
+from ui.signals import signals
 from ui.styles.colors import COLORS
 from ui.styles.dark_theme import DARK_THEME_QSS
-from ui.signals import signals
-
-from ui.widgets.chat_widget import ChatWidget
-from ui.widgets.input_bar import InputBar
-from ui.widgets.waveform_widget import DualWaveformWidget
-from ui.widgets.system_dashboard import SystemDashboard
-from ui.widgets.quick_actions import QuickActionsWidget
-from ui.widgets.title_bar import CustomTitleBar
-from ui.widgets.sidebar import CollapsibleSidebar
-from ui.widgets.status_bar import StatusBar
-from ui.widgets.settings_panel import SettingsPanel
-
-from ui.threads.system_monitor_thread import SystemMonitorThread
 from ui.threads.audio_thread import AudioCaptureThread
 from ui.threads.command_worker import CommandWorker, QuickActionWorker
+from ui.threads.system_monitor_thread import SystemMonitorThread
+from ui.widgets.chat_widget import ChatWidget
+from ui.widgets.input_bar import InputBar
+from ui.widgets.quick_actions import QuickActionsWidget
+from ui.widgets.settings_panel import SettingsPanel
+from ui.widgets.sidebar import CollapsibleSidebar
+from ui.widgets.status_bar import StatusBar
+from ui.widgets.system_dashboard import SystemDashboard
+from ui.widgets.title_bar import CustomTitleBar
+from ui.widgets.waveform_widget import DualWaveformWidget
 
 
 class MainWindow(QMainWindow):
@@ -41,8 +37,7 @@ class MainWindow(QMainWindow):
 
         # Show welcome message
         self.chat_widget.add_message(
-            "A.L.F.R.E.D",
-            "Hello! I'm **A.L.F.R.E.D**, your personal assistant. How can I help you today?"
+            "A.L.F.R.E.D", "Hello! I'm **A.L.F.R.E.D**, your personal assistant. How can I help you today?"
         )
 
         # Set initial status
@@ -68,8 +63,8 @@ class MainWindow(QMainWindow):
         central_widget.setObjectName("centralFrame")
         central_widget.setStyleSheet(f"""
             #centralFrame {{
-                background-color: {COLORS['bg_primary']};
-                border: 1px solid {COLORS['border_default']};
+                background-color: {COLORS["bg_primary"]};
+                border: 1px solid {COLORS["border_default"]};
                 border-radius: 10px;
             }}
         """)
@@ -283,9 +278,7 @@ class MainWindow(QMainWindow):
         self.quick_actions.highlight_tile(action_id, True)
 
         worker = QuickActionWorker(action_id, command)
-        worker.signals.finished.connect(
-            lambda response: self._on_quick_action_finished(action_id, response)
-        )
+        worker.signals.finished.connect(lambda response: self._on_quick_action_finished(action_id, response))
         worker.signals.error.connect(self._on_command_error)
 
         self.thread_pool.start(worker)
@@ -332,10 +325,7 @@ class MainWindow(QMainWindow):
     def resizeEvent(self, event):
         """Position the size grip on resize."""
         super().resizeEvent(event)
-        self._size_grip.move(
-            self.width() - self._size_grip.width() - 4,
-            self.height() - self._size_grip.height() - 4
-        )
+        self._size_grip.move(self.width() - self._size_grip.width() - 4, self.height() - self._size_grip.height() - 4)
 
     def closeEvent(self, event):
         """Handle window close event."""

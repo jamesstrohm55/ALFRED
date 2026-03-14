@@ -1,15 +1,14 @@
 """
 System monitor command handler for A.L.F.R.E.D - processes system status queries.
 """
+
 from __future__ import annotations
 
-from typing import Optional
-
-from services.system_monitor import get_system_stats, SystemStats
+from services.system_monitor import SystemStats, get_system_stats
 from ui.system_overlay import launch_system_overlay
 
 
-def handle_system_monitor_command(user_input: str) -> Optional[str]:
+def handle_system_monitor_command(user_input: str) -> str | None:
     """
     Handle system monitoring commands.
 
@@ -27,7 +26,7 @@ def handle_system_monitor_command(user_input: str) -> Optional[str]:
         "how is the system",
         "system stats",
         "system information",
-        "check systems"
+        "check systems",
     ]
 
     if any(word in user_input for word in keywords):

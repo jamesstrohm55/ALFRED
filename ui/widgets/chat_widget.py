@@ -1,13 +1,22 @@
 """
 Modern chat widget with message bubbles, markdown rendering, avatars, and animations.
 """
-from datetime import datetime, date
+
+from datetime import date, datetime
+
+from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QTimer, Signal, Slot
+from PySide6.QtGui import QFont, QPainter, QPainterPath, QPixmap
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QScrollArea,
-    QLabel, QFrame, QSizePolicy, QTextBrowser, QGraphicsOpacityEffect
+    QFrame,
+    QGraphicsOpacityEffect,
+    QHBoxLayout,
+    QLabel,
+    QScrollArea,
+    QSizePolicy,
+    QTextBrowser,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import Signal, Slot, Qt, QTimer, QPropertyAnimation, QEasingCurve
-from PySide6.QtGui import QFont, QPixmap, QPainter, QPainterPath
 
 from ui.styles.colors import COLORS
 from ui.utils import load_svg_pixmap
@@ -15,6 +24,7 @@ from ui.widgets.date_separator import DateSeparator
 
 try:
     import markdown
+
     HAS_MARKDOWN = True
 except ImportError:
     HAS_MARKDOWN = False
@@ -44,15 +54,12 @@ def _render_markdown_html(text: str) -> str:
         escaped = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
         return escaped.replace("\n", "<br>")
 
-    html = markdown.markdown(
-        text,
-        extensions=['fenced_code', 'tables', 'nl2br', 'sane_lists']
-    )
+    html = markdown.markdown(text, extensions=["fenced_code", "tables", "nl2br", "sane_lists"])
 
     styled = f"""
     <style>
         body {{
-            color: {COLORS['text_primary']};
+            color: {COLORS["text_primary"]};
             font-family: 'Segoe UI', Arial, sans-serif;
             font-size: 10pt;
             margin: 0;
@@ -60,16 +67,16 @@ def _render_markdown_html(text: str) -> str:
         }}
         p {{ margin: 4px 0; }}
         code {{
-            background-color: {COLORS['bg_primary']};
-            color: {COLORS['accent_cyan']};
+            background-color: {COLORS["bg_primary"]};
+            color: {COLORS["accent_cyan"]};
             padding: 2px 6px;
             border-radius: 4px;
             font-family: 'Consolas', 'Courier New', monospace;
             font-size: 9pt;
         }}
         pre {{
-            background-color: {COLORS['bg_primary']};
-            border: 1px solid {COLORS['border_default']};
+            background-color: {COLORS["bg_primary"]};
+            border: 1px solid {COLORS["border_default"]};
             border-radius: 6px;
             padding: 10px;
             margin: 6px 0;
@@ -79,9 +86,9 @@ def _render_markdown_html(text: str) -> str:
             background-color: transparent;
             padding: 0;
         }}
-        strong, b {{ color: {COLORS['text_primary']}; }}
-        em, i {{ color: {COLORS['text_secondary']}; }}
-        a {{ color: {COLORS['accent_cyan']}; text-decoration: none; }}
+        strong, b {{ color: {COLORS["text_primary"]}; }}
+        em, i {{ color: {COLORS["text_secondary"]}; }}
+        a {{ color: {COLORS["accent_cyan"]}; text-decoration: none; }}
         a:hover {{ text-decoration: underline; }}
         ul, ol {{ margin: 4px 0; padding-left: 20px; }}
         li {{ margin: 2px 0; }}
@@ -90,23 +97,23 @@ def _render_markdown_html(text: str) -> str:
             margin: 6px 0;
         }}
         th, td {{
-            border: 1px solid {COLORS['border_default']};
+            border: 1px solid {COLORS["border_default"]};
             padding: 6px 10px;
             text-align: left;
         }}
         th {{
-            background-color: {COLORS['bg_primary']};
-            color: {COLORS['accent_cyan']};
+            background-color: {COLORS["bg_primary"]};
+            color: {COLORS["accent_cyan"]};
         }}
         h1, h2, h3, h4 {{
-            color: {COLORS['accent_cyan']};
+            color: {COLORS["accent_cyan"]};
             margin: 8px 0 4px 0;
         }}
         blockquote {{
-            border-left: 3px solid {COLORS['accent_cyan']};
+            border-left: 3px solid {COLORS["accent_cyan"]};
             margin: 6px 0;
             padding: 4px 12px;
-            color: {COLORS['text_secondary']};
+            color: {COLORS["text_secondary"]};
         }}
     </style>
     <body>{html}</body>
@@ -142,7 +149,7 @@ class ChatBubble(QFrame):
         else:
             avatar_label.setText("U" if self.is_user else "A")
             avatar_label.setAlignment(Qt.AlignCenter)
-            color = COLORS['bubble_user'] if self.is_user else COLORS['accent_cyan']
+            color = COLORS["bubble_user"] if self.is_user else COLORS["accent_cyan"]
             avatar_label.setStyleSheet(f"""
                 background-color: {color};
                 color: white;
@@ -175,9 +182,7 @@ class ChatBubble(QFrame):
             self.message_label = QLabel(message)
             self.message_label.setWordWrap(True)
             self.message_label.setFont(QFont("Segoe UI", 10))
-            self.message_label.setTextInteractionFlags(
-                Qt.TextSelectableByMouse | Qt.TextSelectableByKeyboard
-            )
+            self.message_label.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.TextSelectableByKeyboard)
             self.message_label.setStyleSheet(f"color: {COLORS['text_primary']}; background: transparent;")
         else:
             # Markdown-rendered HTML for ALFRED messages
@@ -190,7 +195,7 @@ class ChatBubble(QFrame):
             self.message_label.setStyleSheet(f"""
                 QTextBrowser {{
                     background-color: transparent;
-                    color: {COLORS['text_primary']};
+                    color: {COLORS["text_primary"]};
                     border: none;
                 }}
             """)
@@ -234,7 +239,7 @@ class ChatBubble(QFrame):
         if self.is_user:
             self.setStyleSheet(f"""
                 ChatBubble {{
-                    background-color: {COLORS['bubble_user']};
+                    background-color: {COLORS["bubble_user"]};
                     border-radius: 16px;
                     border-top-right-radius: 4px;
                 }}
@@ -242,10 +247,10 @@ class ChatBubble(QFrame):
         else:
             self.setStyleSheet(f"""
                 ChatBubble {{
-                    background-color: {COLORS['bubble_alfred']};
+                    background-color: {COLORS["bubble_alfred"]};
                     border-radius: 16px;
                     border-top-left-radius: 4px;
-                    border: 1px solid {COLORS['border_default']};
+                    border: 1px solid {COLORS["border_default"]};
                 }}
             """)
 
@@ -273,7 +278,7 @@ class TypingIndicator(QFrame):
 
         self.setStyleSheet(f"""
             QFrame {{
-                background-color: {COLORS['bg_tertiary']};
+                background-color: {COLORS["bg_tertiary"]};
                 border-radius: 12px;
             }}
         """)
@@ -335,20 +340,20 @@ class ChatWidget(QScrollArea):
         self.setStyleSheet(f"""
             QScrollArea {{
                 border: none;
-                background-color: {COLORS['bg_secondary']};
+                background-color: {COLORS["bg_secondary"]};
             }}
             QScrollBar:vertical {{
-                background-color: {COLORS['scrollbar_bg']};
+                background-color: {COLORS["scrollbar_bg"]};
                 width: 8px;
                 border-radius: 4px;
             }}
             QScrollBar::handle:vertical {{
-                background-color: {COLORS['scrollbar_handle']};
+                background-color: {COLORS["scrollbar_handle"]};
                 border-radius: 4px;
                 min-height: 30px;
             }}
             QScrollBar::handle:vertical:hover {{
-                background-color: {COLORS['scrollbar_hover']};
+                background-color: {COLORS["scrollbar_hover"]};
             }}
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
                 height: 0;

@@ -3,9 +3,8 @@ Supabase database layer for A.L.F.R.E.D - cloud-backed storage with PostgreSQL +
 
 Replaces SQLite + ChromaDB with a single managed backend.
 """
-from __future__ import annotations
 
-from typing import Optional
+from __future__ import annotations
 
 from utils.logger import get_logger
 
@@ -24,12 +23,12 @@ def get_supabase():
         return _supabase_client
 
     from supabase import create_client
-    from config import SUPABASE_URL, SUPABASE_KEY
+
+    from config import SUPABASE_KEY, SUPABASE_URL
 
     if not SUPABASE_URL or not SUPABASE_KEY:
         raise RuntimeError(
-            "SUPABASE_URL and SUPABASE_KEY must be set in .env. "
-            "Get them from Supabase Dashboard → Settings → API."
+            "SUPABASE_URL and SUPABASE_KEY must be set in .env. Get them from Supabase Dashboard → Settings → API."
         )
 
     _supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -43,7 +42,9 @@ def generate_embedding(text: str) -> list[float]:
 
     if _openai_client is None:
         from openai import OpenAI
+
         from config import OPENAI_KEY
+
         _openai_client = OpenAI(api_key=OPENAI_KEY)
 
     response = _openai_client.embeddings.create(

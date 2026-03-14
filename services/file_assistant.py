@@ -1,11 +1,13 @@
 """
 File assistant service for finding, opening, and managing files.
 """
+
 import os
-import subprocess
 import platform
+import subprocess
 import threading
 from pathlib import Path
+
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -13,11 +15,22 @@ logger = get_logger(__name__)
 # Directories to skip during file search (common system/cache directories)
 EXCLUDED_DIRS = {
     # Windows
-    '$Recycle.Bin', 'Windows', 'ProgramData', 'AppData',
-    'node_modules', '.git', '__pycache__', '.venv', 'venv',
-    'System Volume Information', 'Recovery',
+    "$Recycle.Bin",
+    "Windows",
+    "ProgramData",
+    "AppData",
+    "node_modules",
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "System Volume Information",
+    "Recovery",
     # Cross-platform
-    '.cache', '.npm', '.yarn', 'site-packages',
+    ".cache",
+    ".npm",
+    ".yarn",
+    "site-packages",
 }
 
 # Maximum search results to prevent memory issues
@@ -58,10 +71,10 @@ def is_safe_path(path: str) -> bool:
         # Check for obvious dangerous paths
         path_lower = str(resolved).lower()
         dangerous_patterns = [
-            'windows\\system32',
-            'windows\\syswow64',
-            'program files',
-            '\\system volume information',
+            "windows\\system32",
+            "windows\\syswow64",
+            "program files",
+            "\\system volume information",
         ]
 
         for pattern in dangerous_patterns:
@@ -112,7 +125,7 @@ def find_file(filename: str, search_path: str = None, max_results: int = DEFAULT
                 break
 
             # Skip excluded directories (modify dirs in-place to prevent descent)
-            dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS and not d.startswith('.')]
+            dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS and not d.startswith(".")]
 
             for name in files:
                 files_scanned += 1
@@ -151,12 +164,12 @@ def open_file_or_folder(path: str) -> str:
         return f"Path does not exist: {path}"
 
     try:
-        if platform.system() == 'Windows':
+        if platform.system() == "Windows":
             os.startfile(path)
-        elif platform.system() == 'Darwin':  # macOS
-            subprocess.call(['open', path])
+        elif platform.system() == "Darwin":  # macOS
+            subprocess.call(["open", path])
         else:  # Linux and others
-            subprocess.call(['xdg-open', path])
+            subprocess.call(["xdg-open", path])
 
         logger.info(f"Opened: {path}")
         return f"Opened: {path}"

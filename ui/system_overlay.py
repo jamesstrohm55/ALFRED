@@ -1,6 +1,7 @@
-from logging import root
 import tkinter as tk
+
 from services.system_monitor import get_system_stats
+
 
 def launch_system_overlay():
     root = tk.Tk()

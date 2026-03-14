@@ -6,14 +6,17 @@ Optimizations:
 - Larger chunk sizes when visualization is off
 - Throttled signal emission to reduce overhead
 """
+
 import numpy as np
 from PySide6.QtCore import QThread, Signal
+
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 try:
     import pyaudio
+
     PYAUDIO_AVAILABLE = True
 except ImportError:
     PYAUDIO_AVAILABLE = False
@@ -21,6 +24,7 @@ except ImportError:
 
 try:
     import speech_recognition as sr
+
     SR_AVAILABLE = True
 except ImportError:
     SR_AVAILABLE = False
@@ -37,10 +41,10 @@ class AudioCaptureThread(QThread):
     """
 
     # Signals
-    audio_chunk = Signal(object)           # np.ndarray of audio samples
-    speech_recognized = Signal(str)        # Recognized speech text
-    listening_state_changed = Signal(bool) # True when listening, False when stopped
-    error_occurred = Signal(str)           # Error message
+    audio_chunk = Signal(object)  # np.ndarray of audio samples
+    speech_recognized = Signal(str)  # Recognized speech text
+    listening_state_changed = Signal(bool)  # True when listening, False when stopped
+    error_occurred = Signal(str)  # Error message
 
     # Audio parameters
     CHUNK_SIZE = 1024
@@ -122,7 +126,7 @@ class AudioCaptureThread(QThread):
                     channels=self.CHANNELS,
                     rate=self.SAMPLE_RATE,
                     input=True,
-                    frames_per_buffer=self.CHUNK_SIZE
+                    frames_per_buffer=self.CHUNK_SIZE,
                 )
                 logger.debug("Audio visualization stream opened")
 
@@ -180,10 +184,10 @@ class AudioCaptureThread(QThread):
                 except Exception:
                     pass
             if p:
-                try:
+                import contextlib
+
+                with contextlib.suppress(Exception):
                     p.terminate()
-                except Exception:
-                    pass
             logger.debug("Audio capture thread stopped")
 
     def _do_speech_recognition(self):

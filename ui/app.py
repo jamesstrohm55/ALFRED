@@ -7,15 +7,17 @@ Usage:
 Or from the main directory:
     python ui/app.py
 """
-import sys
+
 import os
+import sys
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QApplication
+
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -24,9 +26,7 @@ logger = get_logger(__name__)
 def main():
     """Main entry point for the ALFRED GUI application."""
     # Enable high DPI scaling
-    QApplication.setHighDpiScaleFactorRoundingPolicy(
-        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
-    )
+    QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
 
     # Create application
     app = QApplication(sys.argv)
@@ -42,11 +42,13 @@ def main():
 
     # Import and create main window
     from ui.main_window import MainWindow
+
     window = MainWindow()
 
     # Optional: Play startup announcement
     try:
         from core.voice import speak
+
         speak("Graphical interface loaded, sir.")
     except ImportError as e:
         logger.warning(f"Voice module not available: {e}")

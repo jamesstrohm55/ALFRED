@@ -1,11 +1,10 @@
 """
 Input bar widget with text entry, send button, microphone button, and command history.
 """
-from PySide6.QtWidgets import (
-    QWidget, QHBoxLayout, QLineEdit, QPushButton, QSizePolicy
-)
-from PySide6.QtCore import Signal, Qt, QSize
+
+from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QFont, QKeyEvent
+from PySide6.QtWidgets import QHBoxLayout, QLineEdit, QPushButton, QSizePolicy, QWidget
 
 from ui.styles.colors import COLORS
 from ui.utils import load_svg_icon
@@ -29,9 +28,9 @@ class HistoryLineEdit(QLineEdit):
 class InputBar(QWidget):
     """Text input bar with send and microphone buttons and command history."""
 
-    text_submitted = Signal(str)        # Emitted when user submits text
-    voice_button_clicked = Signal()     # Emitted when mic button is clicked
-    voice_button_released = Signal()    # Emitted when mic button is released
+    text_submitted = Signal(str)  # Emitted when user submits text
+    voice_button_clicked = Signal()  # Emitted when mic button is clicked
+    voice_button_released = Signal()  # Emitted when mic button is released
 
     MAX_HISTORY = 50
 
@@ -57,7 +56,7 @@ class InputBar(QWidget):
             self.mic_button.setIcon(mic_icon)
             self.mic_button.setIconSize(QSize(20, 20))
         else:
-            self.mic_button.setText("\U0001F3A4")
+            self.mic_button.setText("\U0001f3a4")
         self.mic_button.setFixedSize(44, 44)
         self.mic_button.setCursor(Qt.PointingHandCursor)
         self.mic_button.setToolTip("Click to speak (hold for continuous)")
@@ -78,7 +77,7 @@ class InputBar(QWidget):
             self.send_button.setIcon(send_icon)
             self.send_button.setIconSize(QSize(20, 20))
         else:
-            self.send_button.setText("\U0001F4E4")
+            self.send_button.setText("\U0001f4e4")
         self.send_button.setFixedSize(44, 44)
         self.send_button.setCursor(Qt.PointingHandCursor)
         self.send_button.setToolTip("Send message")
@@ -94,7 +93,7 @@ class InputBar(QWidget):
         if is_listening:
             self.mic_button.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: {COLORS['accent_red']};
+                    background-color: {COLORS["accent_red"]};
                     border: none;
                     border-radius: 22px;
                     font-size: 18px;
@@ -106,17 +105,17 @@ class InputBar(QWidget):
         else:
             self.mic_button.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: {COLORS['bg_tertiary']};
-                    border: 1px solid {COLORS['border_default']};
+                    background-color: {COLORS["bg_tertiary"]};
+                    border: 1px solid {COLORS["border_default"]};
                     border-radius: 22px;
                     font-size: 18px;
                 }}
                 QPushButton:hover {{
-                    background-color: {COLORS['bg_hover']};
-                    border-color: {COLORS['accent_cyan']};
+                    background-color: {COLORS["bg_hover"]};
+                    border-color: {COLORS["accent_cyan"]};
                 }}
                 QPushButton:pressed {{
-                    background-color: {COLORS['accent_cyan']};
+                    background-color: {COLORS["accent_cyan"]};
                 }}
             """)
 
@@ -124,15 +123,15 @@ class InputBar(QWidget):
         """Style the text input field."""
         self.text_input.setStyleSheet(f"""
             QLineEdit {{
-                background-color: {COLORS['bg_secondary']};
-                color: {COLORS['text_primary']};
-                border: 1px solid {COLORS['border_default']};
+                background-color: {COLORS["bg_secondary"]};
+                color: {COLORS["text_primary"]};
+                border: 1px solid {COLORS["border_default"]};
                 border-radius: 22px;
                 padding: 0 16px;
-                selection-background-color: {COLORS['accent_cyan']};
+                selection-background-color: {COLORS["accent_cyan"]};
             }}
             QLineEdit:focus {{
-                border-color: {COLORS['accent_cyan']};
+                border-color: {COLORS["accent_cyan"]};
             }}
         """)
 
@@ -140,19 +139,19 @@ class InputBar(QWidget):
         """Style the send button."""
         self.send_button.setStyleSheet(f"""
             QPushButton {{
-                background-color: {COLORS['accent_cyan']};
+                background-color: {COLORS["accent_cyan"]};
                 border: none;
                 border-radius: 22px;
                 font-size: 18px;
             }}
             QPushButton:hover {{
-                background-color: {COLORS['accent_cyan_dim']};
+                background-color: {COLORS["accent_cyan_dim"]};
             }}
             QPushButton:pressed {{
                 background-color: #0077aa;
             }}
             QPushButton:disabled {{
-                background-color: {COLORS['bg_tertiary']};
+                background-color: {COLORS["bg_tertiary"]};
             }}
         """)
 

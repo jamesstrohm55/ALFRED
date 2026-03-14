@@ -1,14 +1,12 @@
 """
 Unit tests for services - automation, system_monitor, weather_service.
 """
+
 from __future__ import annotations
 
-import pytest
-from unittest.mock import patch, MagicMock
-import datetime
-
-import sys
 import os
+import sys
+from unittest.mock import MagicMock, patch
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -31,7 +29,7 @@ class TestAutomation:
         from services.automation import run_command
 
         # Patch webbrowser.open to prevent actual browser opening
-        with patch('webbrowser.open') as mock_browser:
+        with patch("webbrowser.open") as mock_browser:
             # Test exact match
             result = run_command("open browser")
             assert result == "Opening your browser, sir."
@@ -64,8 +62,16 @@ class TestSystemMonitor:
 
         assert isinstance(stats, dict)
         expected_keys = [
-            "cpu_percent", "ram_percent", "ram_used_gb", "ram_total_gb",
-            "disk_percent", "disk_used_gb", "disk_total_gb", "uptime", "os", "os_version"
+            "cpu_percent",
+            "ram_percent",
+            "ram_used_gb",
+            "ram_total_gb",
+            "disk_percent",
+            "disk_used_gb",
+            "disk_total_gb",
+            "uptime",
+            "os",
+            "os_version",
         ]
         for key in expected_keys:
             assert key in stats
@@ -103,15 +109,11 @@ class TestWeatherService:
 
     def test_get_location_from_ip_caching(self):
         """Test that location results are cached."""
-        from services.weather_service import get_location_from_ip, _location_cache
+        from services.weather_service import get_location_from_ip
 
-        with patch('services.weather_service.requests.get') as mock_get:
+        with patch("services.weather_service.requests.get") as mock_get:
             mock_response = MagicMock()
-            mock_response.json.return_value = {
-                "status": "success",
-                "city": "Test City",
-                "country": "Test Country"
-            }
+            mock_response.json.return_value = {"status": "success", "city": "Test City", "country": "Test Country"}
             mock_get.return_value = mock_response
 
             # First call should hit the API
@@ -128,12 +130,12 @@ class TestWeatherService:
         """Test weather lookup with tuple location."""
         from services.weather_service import get_weather
 
-        with patch('services.weather_service.requests.get') as mock_get:
+        with patch("services.weather_service.requests.get") as mock_get:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.json.return_value = {
                 "weather": [{"description": "clear sky"}],
-                "main": {"temp": 20, "feels_like": 19, "humidity": 50}
+                "main": {"temp": 20, "feels_like": 19, "humidity": 50},
             }
             mock_get.return_value = mock_response
 
@@ -143,19 +145,20 @@ class TestWeatherService:
 
     def test_get_weather_caching(self):
         """Test that weather results are cached."""
-        from services.weather_service import get_weather, _weather_cache
+        from services.weather_service import get_weather
 
-        with patch('services.weather_service.requests.get') as mock_get:
+        with patch("services.weather_service.requests.get") as mock_get:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.json.return_value = {
                 "weather": [{"description": "sunny"}],
-                "main": {"temp": 25, "feels_like": 24, "humidity": 40}
+                "main": {"temp": 25, "feels_like": 24, "humidity": 40},
             }
             mock_get.return_value = mock_response
 
             # Clear cache first
             from services.weather_service import clear_weather_cache
+
             clear_weather_cache()
 
             # First call
@@ -169,11 +172,11 @@ class TestWeatherService:
 
     def test_get_weather_handles_api_error(self):
         """Test that API errors are handled gracefully."""
-        from services.weather_service import get_weather, clear_weather_cache
+        from services.weather_service import clear_weather_cache, get_weather
 
         clear_weather_cache()
 
-        with patch('services.weather_service.requests.get') as mock_get:
+        with patch("services.weather_service.requests.get") as mock_get:
             mock_response = MagicMock()
             mock_response.status_code = 404
             mock_get.return_value = mock_response
@@ -183,7 +186,7 @@ class TestWeatherService:
 
     def test_clear_weather_cache(self):
         """Test cache clearing functionality."""
-        from services.weather_service import clear_weather_cache, _weather_cache, _location_cache
+        from services.weather_service import _location_cache, clear_weather_cache
 
         clear_weather_cache()
         assert _location_cache["data"] is None

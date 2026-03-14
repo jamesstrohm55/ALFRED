@@ -1,10 +1,12 @@
 """
 Date separator widget for grouping chat messages by time.
 """
-from datetime import date, datetime, timedelta
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QFrame
+
+from datetime import date, timedelta
+
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QWidget
 
 from ui.styles.colors import COLORS
 

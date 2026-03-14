@@ -1,9 +1,11 @@
 """
 Utility functions for ALFRED UI - icon loading and helpers.
 """
+
 import os
-from PySide6.QtGui import QPixmap, QIcon, QPainter
-from PySide6.QtCore import Qt, QSize
+
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QIcon, QPainter, QPixmap
 from PySide6.QtSvg import QSvgRenderer
 
 ICONS_DIR = os.path.join(os.path.dirname(__file__), "resources", "icons")

@@ -1,16 +1,13 @@
 """
 System monitoring dashboard with real-time charts using pyqtgraph.
 """
+
 from collections import deque
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QProgressBar, QFrame, QGridLayout
-)
-from PySide6.QtCore import Slot, Qt
-from PySide6.QtGui import QFont
 
 import pyqtgraph as pg
-import numpy as np
+from PySide6.QtCore import Qt, Slot
+from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QProgressBar, QVBoxLayout, QWidget
 
 from ui.styles.colors import COLORS
 
@@ -31,9 +28,9 @@ class MetricPanel(QFrame):
         """Set up the panel UI."""
         self.setStyleSheet(f"""
             QFrame {{
-                background-color: {COLORS['bg_secondary']};
+                background-color: {COLORS["bg_secondary"]};
                 border-radius: 8px;
-                border: 1px solid {COLORS['border_default']};
+                border: 1px solid {COLORS["border_default"]};
             }}
         """)
 
@@ -67,7 +64,7 @@ class MetricPanel(QFrame):
         self.progress_bar.setFixedHeight(6)
         self.progress_bar.setStyleSheet(f"""
             QProgressBar {{
-                background-color: {COLORS['bg_primary']};
+                background-color: {COLORS["bg_primary"]};
                 border: none;
                 border-radius: 3px;
             }}
@@ -80,11 +77,11 @@ class MetricPanel(QFrame):
         # Chart using pyqtgraph
         pg.setConfigOptions(antialias=True)
         self.chart = pg.PlotWidget()
-        self.chart.setBackground(COLORS['bg_primary'])
+        self.chart.setBackground(COLORS["bg_primary"])
         self.chart.setFixedHeight(50)
         self.chart.setMouseEnabled(x=False, y=False)
-        self.chart.hideAxis('bottom')
-        self.chart.hideAxis('left')
+        self.chart.hideAxis("bottom")
+        self.chart.hideAxis("left")
         self.chart.setYRange(0, 100)
         self.chart.setXRange(0, 60)
 
@@ -96,7 +93,7 @@ class MetricPanel(QFrame):
         self.fill = pg.FillBetweenItem(
             self.curve,
             pg.PlotDataItem([0] * 60),
-            brush=pg.mkBrush(self._color + '40')  # 25% opacity
+            brush=pg.mkBrush(self._color + "40"),  # 25% opacity
         )
         self.chart.addItem(self.fill)
 
@@ -128,9 +125,7 @@ class MetricPanel(QFrame):
         # Update fill
         self.chart.removeItem(self.fill)
         self.fill = pg.FillBetweenItem(
-            self.curve,
-            pg.PlotDataItem(x_data, [0] * len(y_data)),
-            brush=pg.mkBrush(self._color + '40')
+            self.curve, pg.PlotDataItem(x_data, [0] * len(y_data)), brush=pg.mkBrush(self._color + "40")
         )
         self.chart.addItem(self.fill)
 
@@ -152,25 +147,25 @@ class SystemDashboard(QWidget):
         title = QLabel("SYSTEM MONITOR")
         title.setFont(QFont("Segoe UI", 10, QFont.Bold))
         title.setStyleSheet(f"""
-            color: {COLORS['accent_cyan']};
+            color: {COLORS["accent_cyan"]};
             padding: 8px;
-            background-color: {COLORS['bg_secondary']};
+            background-color: {COLORS["bg_secondary"]};
             border-radius: 8px;
         """)
         title.setAlignment(Qt.AlignCenter)
 
         # Metric panels
-        self.cpu_panel = MetricPanel("CPU", COLORS['chart_cpu'])
-        self.ram_panel = MetricPanel("RAM", COLORS['chart_ram'])
-        self.disk_panel = MetricPanel("DISK", COLORS['chart_disk'])
+        self.cpu_panel = MetricPanel("CPU", COLORS["chart_cpu"])
+        self.ram_panel = MetricPanel("RAM", COLORS["chart_ram"])
+        self.disk_panel = MetricPanel("DISK", COLORS["chart_disk"])
 
         # Info panel for uptime and OS
         self.info_frame = QFrame()
         self.info_frame.setStyleSheet(f"""
             QFrame {{
-                background-color: {COLORS['bg_secondary']};
+                background-color: {COLORS["bg_secondary"]};
                 border-radius: 8px;
-                border: 1px solid {COLORS['border_default']};
+                border: 1px solid {COLORS["border_default"]};
             }}
         """)
         info_layout = QGridLayout(self.info_frame)
@@ -178,14 +173,14 @@ class SystemDashboard(QWidget):
         info_layout.setSpacing(4)
 
         # Uptime
-        uptime_icon = QLabel("\U0001F551")  # Clock emoji
+        uptime_icon = QLabel("\U0001f551")  # Clock emoji
         uptime_icon.setStyleSheet("background: transparent;")
         self.uptime_label = QLabel("Uptime: --")
         self.uptime_label.setFont(QFont("Segoe UI", 9))
         self.uptime_label.setStyleSheet(f"color: {COLORS['text_secondary']}; background: transparent;")
 
         # OS Info
-        os_icon = QLabel("\U0001F4BB")  # Computer emoji
+        os_icon = QLabel("\U0001f4bb")  # Computer emoji
         os_icon.setStyleSheet("background: transparent;")
         self.os_label = QLabel("OS: --")
         self.os_label.setFont(QFont("Segoe UI", 9))
@@ -209,29 +204,29 @@ class SystemDashboard(QWidget):
     def update_stats(self, stats: dict):
         """Update the dashboard with new system statistics."""
         # Update CPU
-        cpu_percent = stats.get('cpu_percent', 0)
+        cpu_percent = stats.get("cpu_percent", 0)
         self.cpu_panel.update_value(cpu_percent)
 
         # Update RAM
-        ram_percent = stats.get('ram_percent', 0)
-        ram_used = stats.get('ram_used_gb', 0)
-        ram_total = stats.get('ram_total_gb', 0)
+        ram_percent = stats.get("ram_percent", 0)
+        ram_used = stats.get("ram_used_gb", 0)
+        ram_total = stats.get("ram_total_gb", 0)
         ram_detail = f"{ram_used:.1f} / {ram_total:.1f} GB ({ram_percent:.0f}%)"
         self.ram_panel.update_value(ram_percent, ram_detail)
 
         # Update Disk
-        disk_percent = stats.get('disk_percent', 0)
-        disk_used = stats.get('disk_used_gb', 0)
-        disk_total = stats.get('disk_total_gb', 0)
+        disk_percent = stats.get("disk_percent", 0)
+        disk_used = stats.get("disk_used_gb", 0)
+        disk_total = stats.get("disk_total_gb", 0)
         disk_detail = f"{disk_used:.0f} / {disk_total:.0f} GB ({disk_percent:.0f}%)"
         self.disk_panel.update_value(disk_percent, disk_detail)
 
         # Update info
-        uptime = stats.get('uptime', '--')
+        uptime = stats.get("uptime", "--")
         self.uptime_label.setText(f"Uptime: {uptime}")
 
-        os_name = stats.get('os', 'Unknown')
-        os_version = stats.get('os_version', '')
+        os_name = stats.get("os", "Unknown")
+        os_version = stats.get("os_version", "")
         if os_version:
             self.os_label.setText(f"OS: {os_name} {os_version}")
         else:

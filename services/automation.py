@@ -1,13 +1,14 @@
 """
 Automation service for A.L.F.R.E.D - handles system-level commands and OS integrations.
 """
+
 from __future__ import annotations
 
-import os
-import webbrowser
 import datetime
 import difflib
-from typing import Callable, Optional
+import os
+import webbrowser
+from collections.abc import Callable
 
 from config import MUSIC_PATH
 from memory.database import get_supabase
@@ -57,13 +58,13 @@ command_map: dict[str, Callable[[], str]] = {
     "open vs code": open_code,
     "tell time": tell_time,
     "play music": play_music,
-    "lock computer": lock_computer
+    "lock computer": lock_computer,
 }
 
 # === Fuzzy Matching Handler ===
 
 
-def run_command(user_input: str) -> Optional[str]:
+def run_command(user_input: str) -> str | None:
     """
     Handle system-level commands (browser, VS Code, time, music, lock).
 
@@ -85,13 +86,15 @@ def run_command(user_input: str) -> Optional[str]:
     return None
 
 
-def log_command(input_text: str, matched_command: Optional[str] = None) -> None:
+def log_command(input_text: str, matched_command: str | None = None) -> None:
     """Log command input and matched command to Supabase."""
     try:
         sb = get_supabase()
-        sb.table("command_logs").insert({
-            "input_text": input_text,
-            "matched_command": matched_command,
-        }).execute()
+        sb.table("command_logs").insert(
+            {
+                "input_text": input_text,
+                "matched_command": matched_command,
+            }
+        ).execute()
     except Exception as e:
         logger.warning(f"Failed to log command: {e}")

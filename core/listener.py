@@ -1,14 +1,13 @@
 """
 Listener module for A.L.F.R.E.D - handles speech recognition and text input fallback.
 """
-from __future__ import annotations
 
-from typing import Optional
+from __future__ import annotations
 
 import speech_recognition as sr
 
 
-def listen() -> Optional[str]:
+def listen() -> str | None:
     """
     Listen for voice input or fall back to text input.
 
@@ -31,7 +30,7 @@ def listen() -> Optional[str]:
             except sr.WaitTimeoutError:
                 print("Listening timed out.")
                 return None
-    except (OSError, AttributeError, IOError):
+    except (OSError, AttributeError):
         # Mic not found, access issue, or audio stream error
         command = input("Microphone unavailable. Please type your command: ")
         print(f"You (typed): {command}")

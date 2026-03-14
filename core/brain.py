@@ -4,22 +4,23 @@ Core brain module for A.L.F.R.E.D - handles command routing and LLM interactions
 Includes RAG (Retrieval-Augmented Generation) for injecting relevant memories
 into LLM prompts, and Supabase-backed conversation persistence.
 """
+
 from __future__ import annotations
 
-import uuid
 import threading
-from typing import Any, Optional
+import uuid
 
 from openai import OpenAI
+
 from config import OPENAI_KEY, OPENROUTER_API_KEY
-from memory.memory_manager import remember, recall, forget, list_memory, semantic_search_memory, get_recent_memories
 from memory.database import get_supabase
-from services.automation import run_command
+from memory.memory_manager import get_recent_memories, semantic_search_memory
 from service_commands.calendar_commands import handle_calendar_command
-from service_commands.weather_commands import handle_weather_command
 from service_commands.file_assistant_commands import handle_file_command
-from service_commands.system_monitor_commands import handle_system_monitor_command
 from service_commands.memory_commands import handle_memory_commands
+from service_commands.system_monitor_commands import handle_system_monitor_command
+from service_commands.weather_commands import handle_weather_command
+from services.automation import run_command
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -37,9 +38,12 @@ MAX_HISTORY: int = 10
 RAG_SIMILARITY_THRESHOLD: float = 0.5
 RAG_MAX_TOKENS: int = 500
 
-SYSTEM_PROMPT = """You are A.L.F.R.E.D, an All Knowing Logical Facilitator for Reasoned Execution of Duties.
-You are a sophisticated AI assistant inspired by J.A.R.V.I.S. Be helpful, concise, and maintain a professional yet friendly demeanor.
-Address the user respectfully and provide accurate, thoughtful responses."""
+SYSTEM_PROMPT = (
+    "You are A.L.F.R.E.D, an All Knowing Logical Facilitator for Reasoned Execution of Duties. "
+    "You are a sophisticated AI assistant inspired by J.A.R.V.I.S. Be helpful, concise, "
+    "and maintain a professional yet friendly demeanor. "
+    "Address the user respectfully and provide accurate, thoughtful responses."
+)
 
 
 def add_to_history(role: str, content: str) -> None:
@@ -47,16 +51,18 @@ def add_to_history(role: str, content: str) -> None:
     with _history_lock:
         try:
             sb = get_supabase()
-            sb.table("conversations").insert({
-                "session_id": SESSION_ID,
-                "role": role,
-                "content": content,
-            }).execute()
+            sb.table("conversations").insert(
+                {
+                    "session_id": SESSION_ID,
+                    "role": role,
+                    "content": content,
+                }
+            ).execute()
         except Exception as e:
             logger.error(f"Failed to persist conversation: {e}")
 
 
-def get_conversation_history(limit: Optional[int] = None) -> list[dict[str, str]]:
+def get_conversation_history(limit: int | None = None) -> list[dict[str, str]]:
     """
     Load recent conversation history from Supabase.
 
@@ -110,10 +116,7 @@ def _build_memory_context(text: str) -> str:
     try:
         results = semantic_search_memory(text, n_results=5)
         if results:
-            relevant = [
-                r["document"] for r in results
-                if r["similarity"] >= RAG_SIMILARITY_THRESHOLD
-            ]
+            relevant = [r["document"] for r in results if r["similarity"] >= RAG_SIMILARITY_THRESHOLD]
             if relevant:
                 context_parts.append("Semantically relevant memories:")
                 for mem in relevant:
@@ -154,7 +157,7 @@ def get_response(text: str) -> str:
 
     try:
         # Memory Commands
-        response: Optional[str] = handle_memory_commands(lower)
+        response: str | None = handle_memory_commands(lower)
         if response:
             return response
 
@@ -179,7 +182,7 @@ def get_response(text: str) -> str:
         return "Sorry, I encountered an error while processing your request."
 
 
-def handle_service_commands(text: str) -> Optional[str]:
+def handle_service_commands(text: str) -> str | None:
     """Route text to appropriate service command handler."""
     if any(keyword in text for keyword in ["calendar", "schedule", "remind", "event"]):
         return handle_calendar_command(text)
@@ -223,26 +226,17 @@ def query_llm_with_context(text: str) -> str:
     """Query LLM with conversation context, RAG memory injection, and fallback support."""
     messages: list[dict[str, str]] = build_messages(text)
 
-    openrouter_client = OpenAI(
-        api_key=OPENROUTER_API_KEY,
-        base_url="https://openrouter.ai/api/v1"
-    )
+    openrouter_client = OpenAI(api_key=OPENROUTER_API_KEY, base_url="https://openrouter.ai/api/v1")
 
     try:
-        completion = openrouter_client.chat.completions.create(
-            model="anthropic/claude-3.5-sonnet",
-            messages=messages
-        )
+        completion = openrouter_client.chat.completions.create(model="anthropic/claude-3.5-sonnet", messages=messages)
         return completion.choices[0].message.content
 
     except Exception as e:
         logger.warning(f"Primary LLM (Claude 3.5 Sonnet) failed: {e}")
         # Fallback to OpenAI
         try:
-            completion = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=messages
-            )
+            completion = client.chat.completions.create(model="gpt-4o-mini", messages=messages)
             logger.info("Successfully used fallback LLM (GPT-4o-mini)")
             return completion.choices[0].message.content
 

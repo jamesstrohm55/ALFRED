@@ -1,18 +1,20 @@
 """
 Weather service for A.L.F.R.E.D - provides weather data with caching and IP-based location.
 """
+
 from __future__ import annotations
 
 import time
-from typing import Any, Optional, Union
+from typing import Any
 
 import requests
+
 from config import WEATHER_API_KEY
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-API_KEY: Optional[str] = WEATHER_API_KEY
+API_KEY: str | None = WEATHER_API_KEY
 
 # Cache configuration
 _LOCATION_CACHE_TTL: int = 300  # 5 minutes
@@ -24,7 +26,7 @@ _location_cache: dict[str, Any] = {"data": None, "timestamp": 0}
 _weather_cache: dict[str, dict[str, Any]] = {}
 
 
-def get_location_from_ip() -> Optional[tuple[str, str]]:
+def get_location_from_ip() -> tuple[str, str] | None:
     """
     Get user's location from IP address for weather lookups.
 
@@ -33,8 +35,7 @@ def get_location_from_ip() -> Optional[tuple[str, str]]:
     current_time: float = time.time()
 
     # Check cache
-    if (_location_cache["data"] is not None and
-            current_time - _location_cache["timestamp"] < _LOCATION_CACHE_TTL):
+    if _location_cache["data"] is not None and current_time - _location_cache["timestamp"] < _LOCATION_CACHE_TTL:
         logger.debug("Using cached location data")
         return _location_cache["data"]
 
@@ -54,7 +55,7 @@ def get_location_from_ip() -> Optional[tuple[str, str]]:
     return None
 
 
-def get_weather(location: Union[str, tuple[str, str]]) -> str:
+def get_weather(location: str | tuple[str, str]) -> str:
     """
     Get weather data for the specified location.
 
@@ -73,10 +74,7 @@ def get_weather(location: Union[str, tuple[str, str]]) -> str:
             logger.debug(f"Using cached weather data for {location}")
             return cached["response"]
 
-    url: str = (
-        f"http://api.openweathermap.org/data/2.5/weather"
-        f"?q={location}&appid={API_KEY}&units=metric"
-    )
+    url: str = f"http://api.openweathermap.org/data/2.5/weather?q={location}&appid={API_KEY}&units=metric"
 
     try:
         response = requests.get(url, timeout=_REQUEST_TIMEOUT)
@@ -88,10 +86,10 @@ def get_weather(location: Union[str, tuple[str, str]]) -> str:
         return f"Could not retrieve weather data for {location}."
 
     data: dict[str, Any] = response.json()
-    weather_desc: str = data['weather'][0]['description']
-    temp: float = data['main']['temp']
-    feels_like: float = data['main']['feels_like']
-    humidity: int = data['main']['humidity']
+    weather_desc: str = data["weather"][0]["description"]
+    temp: float = data["main"]["temp"]
+    feels_like: float = data["main"]["feels_like"]
+    humidity: int = data["main"]["humidity"]
 
     result: str = (
         f"Weather in {location}: {weather_desc}. "

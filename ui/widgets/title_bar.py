@@ -1,9 +1,10 @@
 """
 Custom frameless title bar for ALFRED main window.
 """
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QSizePolicy
-from PySide6.QtCore import Qt, Signal, QPoint
+
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont, QMouseEvent
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
 
 from ui.styles.colors import COLORS
 from ui.utils import load_svg_icon
@@ -31,7 +32,7 @@ class CustomTitleBar(QWidget):
         layout.setSpacing(8)
 
         # ALFRED icon/logo
-        logo_label = QLabel("\u25C6")  # Diamond character
+        logo_label = QLabel("\u25c6")  # Diamond character
         logo_label.setFont(QFont("Segoe UI", 14))
         logo_label.setStyleSheet(f"color: {COLORS['accent_cyan']}; background: transparent;")
 
@@ -66,7 +67,7 @@ class CustomTitleBar(QWidget):
         self.min_btn.clicked.connect(self.minimize_clicked.emit)
         self._style_control_button(self.min_btn)
 
-        self.max_btn = QPushButton("\u25A1")  # Square for maximize
+        self.max_btn = QPushButton("\u25a1")  # Square for maximize
         self.max_btn.setFixedSize(32, 32)
         self.max_btn.setCursor(Qt.PointingHandCursor)
         self.max_btn.setToolTip("Maximize")
@@ -93,8 +94,8 @@ class CustomTitleBar(QWidget):
         # Title bar styling
         self.setStyleSheet(f"""
             QWidget {{
-                background-color: {COLORS['bg_secondary']};
-                border-bottom: 1px solid {COLORS['border_default']};
+                background-color: {COLORS["bg_secondary"]};
+                border-bottom: 1px solid {COLORS["border_default"]};
             }}
         """)
 
@@ -103,14 +104,14 @@ class CustomTitleBar(QWidget):
         btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: transparent;
-                color: {COLORS['text_secondary']};
+                color: {COLORS["text_secondary"]};
                 border: none;
                 border-radius: 4px;
                 font-size: 14px;
             }}
             QPushButton:hover {{
-                background-color: {COLORS['bg_hover']};
-                color: {COLORS['text_primary']};
+                background-color: {COLORS["bg_hover"]};
+                color: {COLORS["text_primary"]};
             }}
         """)
 
@@ -119,21 +120,21 @@ class CustomTitleBar(QWidget):
         btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: transparent;
-                color: {COLORS['text_secondary']};
+                color: {COLORS["text_secondary"]};
                 border: none;
                 border-radius: 4px;
                 font-size: 14px;
             }}
             QPushButton:hover {{
-                background-color: {COLORS['accent_red']};
-                color: {COLORS['text_primary']};
+                background-color: {COLORS["accent_red"]};
+                color: {COLORS["text_primary"]};
             }}
         """)
 
     def set_maximized_state(self, is_maximized: bool):
         """Update the maximize button icon based on window state."""
         self._is_maximized = is_maximized
-        self.max_btn.setText("\u25A3" if is_maximized else "\u25A1")
+        self.max_btn.setText("\u25a3" if is_maximized else "\u25a1")
 
     def mousePressEvent(self, event: QMouseEvent):
         """Handle mouse press for window dragging."""
