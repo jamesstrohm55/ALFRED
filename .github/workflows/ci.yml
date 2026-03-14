@@ -34,4 +34,9 @@ jobs:
           ruff format --check .
 
       - name: Run tests
+        env:
+          OPENAI_KEY: test
+          OPENROUTER_API_KEY: test
+          SUPABASE_URL: https://test.supabase.co
+          SUPABASE_KEY: test
         run: pytest
