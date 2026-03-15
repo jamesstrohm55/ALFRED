@@ -38,9 +38,10 @@ def handle_memory_commands(text: str) -> str | None:
     """
     lower: str = text.lower().strip()
 
-    # Remember command
-    if lower.startswith("remember that"):
-        _, fact = lower.split("remember that", 1)
+    # Remember command — matches "remember that X is Y" or "remember X is Y"
+    remember_match = re.match(r"remember\s+(?:that\s+)?(.+?\s+is\s+.+)", lower)
+    if remember_match:
+        fact = remember_match.group(1)
         if " is " in fact:
             key, value = fact.split(" is ", 1)
             key = key.strip()
