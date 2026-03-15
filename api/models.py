@@ -9,6 +9,9 @@ from pydantic import BaseModel, Field
 
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1)
+    session_id: str | None = Field(
+        default=None, description="Session ID for conversation threading. Auto-generated if omitted."
+    )  # noqa: E501
 
 
 class ChatResponse(BaseModel):

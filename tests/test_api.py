@@ -6,7 +6,12 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
+from api.auth import check_rate_limit
 from api.server import app
+
+# Override auth dependency for all tests — returns a fake user
+_test_user = {"id": "test-user-id", "label": "test", "rate_limit": 30}
+app.dependency_overrides[check_rate_limit] = lambda: _test_user
 
 client = TestClient(app)
 
@@ -21,12 +26,27 @@ def test_chat_success(mock_resp):
     data = resp.json()
     assert data["response"] == "Hello, sir."
     assert "session_id" in data
-    mock_resp.assert_called_once_with("hello")
+    mock_resp.assert_called_once()
 
 
 def test_chat_empty_message():
     resp = client.post("/chat", json={"message": ""})
     assert resp.status_code == 422
+
+
+@patch("api.server.get_response", return_value="Hi there.")
+def test_chat_with_session_id(mock_resp):
+    resp = client.post("/chat", json={"message": "hello", "session_id": "my-session-123"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["session_id"] == "my-session-123"
+
+
+@patch("api.server.get_response", return_value="Hi.")
+def test_chat_generates_session_id(mock_resp):
+    resp = client.post("/chat", json={"message": "hello"})
+    data = resp.json()
+    assert len(data["session_id"]) == 36  # UUID format
 
 
 @patch(
@@ -42,6 +62,14 @@ def test_chat_history(mock_hist):
     data = resp.json()
     assert len(data["messages"]) == 2
     assert data["messages"][0]["role"] == "user"
+
+
+@patch("api.server.get_conversation_history", return_value=[])
+def test_chat_history_with_session_id(mock_hist):
+    resp = client.get("/chat/history?session_id=abc-123")
+    assert resp.status_code == 200
+    assert resp.json()["session_id"] == "abc-123"
+    mock_hist.assert_called_once_with(limit=10, session_id="abc-123")
 
 
 # ── Memory ────────────────────────────────────────────────────────────────────
@@ -126,7 +154,7 @@ def test_search_memories_empty(mock_search):
     assert resp.json()["count"] == 0
 
 
-# ── Health ────────────────────────────────────────────────────────────────────
+# ── Health (no auth required) ────────────────────────────────────────────────
 
 
 @patch("api.server.check_connection", return_value=True)
@@ -145,3 +173,26 @@ def test_health_degraded(mock_conn):
     data = resp.json()
     assert data["status"] == "degraded"
     assert data["supabase"] is False
+
+
+# ── Auth ─────────────────────────────────────────────────────────────────────
+
+
+def test_auth_missing_key_returns_401():
+    # Remove the override temporarily
+    app.dependency_overrides.pop(check_rate_limit, None)
+    try:
+        resp = client.post("/chat", json={"message": "hello"})
+        assert resp.status_code == 401
+        assert "Missing" in resp.json()["detail"]
+    finally:
+        app.dependency_overrides[check_rate_limit] = lambda: _test_user
+
+
+def test_auth_invalid_key_returns_401():
+    app.dependency_overrides.pop(check_rate_limit, None)
+    try:
+        resp = client.post("/chat", json={"message": "hello"}, headers={"x-api-key": "bad-key"})
+        assert resp.status_code == 401
+    finally:
+        app.dependency_overrides[check_rate_limit] = lambda: _test_user

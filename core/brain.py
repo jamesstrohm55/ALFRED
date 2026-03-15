@@ -50,38 +50,37 @@ SYSTEM_PROMPT = (
 )
 
 
-def add_to_history(role: str, content: str) -> None:
+def add_to_history(role: str, content: str, session_id: str | None = None, user_id: str | None = None) -> None:
     """Persist a message to the conversations table in Supabase."""
+    sid = session_id or SESSION_ID
     with _history_lock:
         try:
             sb = get_supabase()
-            sb.table("conversations").insert(
-                {
-                    "session_id": SESSION_ID,
-                    "role": role,
-                    "content": content,
-                }
-            ).execute()
+            row: dict = {"session_id": sid, "role": role, "content": content}
+            if user_id:
+                row["user_id"] = user_id
+            sb.table("conversations").insert(row).execute()
         except Exception as e:
             logger.error(f"Failed to persist conversation: {e}")
 
 
-def get_conversation_history(limit: int | None = None) -> list[dict[str, str]]:
+def get_conversation_history(limit: int | None = None, session_id: str | None = None) -> list[dict[str, str]]:
     """
     Load recent conversation history from Supabase.
 
-    Looks at the current session first; if empty, loads tail of the previous session
+    Looks at the given session first; if empty, loads tail of the previous session
     for continuity across restarts.
     """
+    sid = session_id or SESSION_ID
     effective_limit = (limit or MAX_HISTORY) * 2  # user+assistant pairs
     try:
         sb = get_supabase()
 
-        # Try current session first
+        # Try given session first
         result = (
             sb.table("conversations")
             .select("role, content")
-            .eq("session_id", SESSION_ID)
+            .eq("session_id", sid)
             .order("timestamp", desc=True)
             .limit(effective_limit)
             .execute()
@@ -89,11 +88,11 @@ def get_conversation_history(limit: int | None = None) -> list[dict[str, str]]:
 
         rows = result.data
         if not rows:
-            # No messages in current session — load last few from any session
+            # No messages in this session — load last few from any session
             result = (
                 sb.table("conversations")
                 .select("role, content")
-                .neq("session_id", SESSION_ID)
+                .neq("session_id", sid)
                 .order("timestamp", desc=True)
                 .limit(effective_limit)
                 .execute()
@@ -150,7 +149,7 @@ def _build_memory_context(text: str) -> str:
     return context
 
 
-def get_response(text: str) -> str:
+def get_response(text: str, session_id: str | None = None, user_id: str | None = None) -> str:
     """
     Process user input and return appropriate response.
 
@@ -176,9 +175,9 @@ def get_response(text: str) -> str:
             return response
 
         # General GPT Query with LLM fallback and conversation context
-        add_to_history("user", text)
-        response = query_llm_with_context(text)
-        add_to_history("assistant", response)
+        add_to_history("user", text, session_id=session_id, user_id=user_id)
+        response = query_llm_with_context(text, session_id=session_id)
+        add_to_history("assistant", response, session_id=session_id, user_id=user_id)
         return response
 
     except Exception as e:
@@ -203,7 +202,7 @@ def handle_service_commands(text: str) -> str | None:
     return None
 
 
-def build_messages(user_text: str) -> list[dict[str, str]]:
+def build_messages(user_text: str, session_id: str | None = None) -> list[dict[str, str]]:
     """Build messages list with system prompt, RAG context, and conversation history."""
     # Build RAG-augmented system prompt
     memory_context = _build_memory_context(user_text)
@@ -220,15 +219,15 @@ def build_messages(user_text: str) -> list[dict[str, str]]:
     messages: list[dict[str, str]] = [{"role": "system", "content": system_content}]
 
     # Load conversation history from Supabase
-    history = get_conversation_history()
+    history = get_conversation_history(session_id=session_id)
     messages.extend(history)
 
     return messages
 
 
-def query_llm_with_context(text: str) -> str:
+def query_llm_with_context(text: str, session_id: str | None = None) -> str:
     """Query LLM with conversation context, RAG memory injection, and fallback support."""
-    messages: list[dict[str, str]] = build_messages(text)
+    messages: list[dict[str, str]] = build_messages(text, session_id=session_id)
 
     openrouter_client = OpenAI(api_key=OPENROUTER_API_KEY, base_url="https://openrouter.ai/api/v1")
 
