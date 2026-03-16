@@ -2,30 +2,85 @@
 
 > **All-Knowing Logical Facilitator for Reasoned Execution of Duties**
 
-A.L.F.R.E.D is a modular, voice-enabled personal AI assistant inspired by J.A.R.V.I.S. Built entirely in Python, it features a multi-provider LLM fallback chain (Claude 3.5 Sonnet via OpenRouter → GPT-4o-mini), a RAG pipeline backed by Supabase + pgvector for semantic memory, and a JARVIS-inspired PySide6 GUI with real-time system dashboards and audio visualization.
+A modular AI assistant with a **FastAPI REST API**, **voice CLI**, and **PySide6 GUI** — all sharing one Supabase backend. Features a multi-provider LLM fallback chain, RAG pipeline with pgvector semantic memory, API key auth with per-user rate limiting, and per-user conversation sessions. Dockerized and deployed on Railway with GitHub Actions CI.
+
+**[Live API Docs](https://alfred-production-5c1f.up.railway.app/docs)** · **[Live Demo](https://jamesstrohm.dev/projects/alfred-demo/)** · **[Portfolio](https://jamesstrohm.dev/projects/alfred.html)**
+
+---
+
+## Three Entry Points
+
+| Mode | Command | Description |
+|------|---------|-------------|
+| **API** | `python -m api.run` | FastAPI REST + WebSocket server |
+| **GUI** | `python -m ui.app` | PySide6 desktop application |
+| **Voice CLI** | `python main.py` | Voice-activated command loop |
+| **Docker** | `docker run -p 8000:8000 --env-file .env alfred` | Containerized API |
+
+All three share the same Supabase backend for memory and conversation persistence.
 
 ---
 
 ## Features
 
-### Core Capabilities
-- **Voice Interaction**: Speech recognition and synthesis with ElevenLabs (pyttsx3 offline fallback)
-- **LLM-Powered Conversations**: Claude 3.5 Sonnet (OpenRouter) primary with GPT-4o-mini fallback
-- **Memory System**: Store, recall, forget, and list facts with semantic search (Supabase + pgvector)
-- **RAG Integration**: Relevant memories automatically injected into LLM conversations
-- **Conversation Persistence**: Chat history stored in Supabase, persists across sessions
-- **System Monitoring**: Real-time CPU, RAM, Disk usage, uptime, and OS info
-- **Weather Reports**: Get weather updates based on your location
-- **Calendar Management**: Google Calendar integration for events
-- **File Assistant**: Search, open, and delete files via voice/text
-- **System Automation**: Lock system, open apps, play music, shutdown
+### REST API
+- **9 endpoints** + WebSocket with auto-generated OpenAPI docs
+- **API key authentication** via `X-API-Key` header with SHA-256 hashed keys stored in Supabase
+- **Per-user rate limiting** (configurable per key in the `api_users` table)
+- **Per-user conversation sessions** — each API caller gets isolated conversation threads
+- **User tracking** — conversations linked to `api_users` via foreign key
 
-### Modern GUI (PySide6)
-- **Chat Interface**: Modern chat bubbles with timestamps
-- **Voice Waveform Visualizer**: Real-time audio visualization for input/output
-- **Quick Action Tiles**: One-click buttons for common commands
-- **System Dashboard**: Live charts for CPU, RAM, and Disk with 60-second history
-- **Dark Theme**: JARVIS-inspired cyan/dark aesthetic
+### AI & Memory
+- **Multi-provider LLM fallback**: Nemotron 30B (free) → Claude 3.5 Sonnet → GPT-4o-mini
+- **RAG pipeline**: Semantic search via pgvector + recent memories injected into every LLM query
+- **Persistent memory**: Remember/recall/forget/search facts with auto-categorization and embeddings
+- **Conversation persistence**: Chat history stored in Supabase, persists across sessions
+
+### Voice & GUI
+- **Voice interaction**: Google STT input + ElevenLabs/pyttsx3 TTS fallback chain
+- **PySide6 GUI**: Chat bubbles, dual waveform visualizer, system dashboard, quick action tiles
+- **Service integrations**: Google Calendar, OpenWeather, file manager, system monitoring
+
+### Infrastructure
+- **Docker**: Multi-stage build with `python:3.13-slim`, layer-cached dependencies
+- **GitHub Actions CI**: Ruff lint + format check + pytest on every push/PR
+- **70+ unit tests** with full mock coverage (no secrets needed in CI)
+- **Pinned dependencies** with `pyproject.toml` packaging
+
+---
+
+## API Endpoints
+
+| Method | Path | Description | Auth |
+|--------|------|-------------|------|
+| `POST` | `/chat` | Send a message, get AI response | Required |
+| `GET` | `/chat/history` | Retrieve conversation history | Required |
+| `POST` | `/memories` | Store a key-value memory | Required |
+| `GET` | `/memories` | List all memories | Required |
+| `GET` | `/memories/{key}` | Recall a specific memory | Required |
+| `DELETE` | `/memories/{key}` | Forget a memory | Required |
+| `POST` | `/memories/search` | Semantic vector search | Required |
+| `GET` | `/system/health` | Health check + Supabase status | Public |
+| `WS` | `/ws/chat` | Real-time WebSocket chat | Required |
+
+### Example Usage
+
+```bash
+# Chat
+curl -X POST https://alfred-production-5c1f.up.railway.app/chat \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-api-key" \
+  -d '{"message": "hello"}'
+
+# Store a memory
+curl -X POST https://alfred-production-5c1f.up.railway.app/memories \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-api-key" \
+  -d '{"key": "favorite color", "value": "blue", "category": "personal"}'
+
+# Health check (no auth needed)
+curl https://alfred-production-5c1f.up.railway.app/system/health
+```
 
 ---
 
@@ -33,131 +88,89 @@ A.L.F.R.E.D is a modular, voice-enabled personal AI assistant inspired by J.A.R.
 
 ```
 ALFRED/
+├── api/                            # FastAPI REST API
+│   ├── auth.py                     # API key auth + rate limiting
+│   ├── models.py                   # Pydantic request/response schemas
+│   ├── server.py                   # Endpoint handlers
+│   └── run.py                      # Standalone entry point (uvicorn)
 │
 ├── core/                           # Voice & brain logic
-│   ├── brain.py                    # Command routing & LLM integration
+│   ├── brain.py                    # Command routing, LLM fallback, RAG
 │   ├── listener.py                 # Speech recognition
-│   ├── personality.py              # Personality traits
-│   └── voice.py                    # Text-to-speech (ElevenLabs + pyttsx3)
+│   ├── personality.py              # Persona configuration
+│   └── voice.py                    # TTS (ElevenLabs + pyttsx3 fallback)
 │
 ├── memory/                         # Persistent memory system
-│   ├── __init__.py                 # Package exports
-│   ├── database.py                 # Supabase client + embedding helper
-│   └── memory_manager.py           # Memory CRUD via Supabase REST API
+│   ├── database.py                 # Supabase client + embeddings
+│   └── memory_manager.py           # Memory CRUD + semantic search
 │
-├── service_commands/               # Modular command handlers
-│   ├── calendar_commands.py
-│   ├── file_assistant_commands.py
-│   ├── memory_commands.py
-│   ├── system_monitor_commands.py
-│   └── weather_commands.py
+├── service_commands/               # Command handlers
+│   ├── calendar_commands.py        # Natural language calendar parsing
+│   ├── file_assistant_commands.py  # File operations
+│   ├── memory_commands.py          # Remember/recall/forget/search
+│   ├── system_monitor_commands.py  # System status queries
+│   └── weather_commands.py         # Weather with IP geolocation
 │
-├── services/                       # System & external services
-│   ├── automation.py               # System commands
+├── services/                       # External integrations
+│   ├── automation.py               # OS commands (browser, VS Code, etc.)
 │   ├── calendar_service.py         # Google Calendar API
-│   ├── embeddings_manager.py       # OpenAI embedding generation
-│   ├── file_assistant.py           # File operations
-│   ├── system_monitor.py           # System stats
-│   └── weather_service.py          # OpenWeather API
+│   ├── file_assistant.py           # File search/open/delete
+│   ├── system_monitor.py           # CPU/RAM/Disk stats
+│   └── weather_service.py          # OpenWeather + client IP geolocation
 │
-├── ui/                             # GUI components (PySide6)
-│   ├── app.py                      # Application entry point
+├── ui/                             # PySide6 GUI
+│   ├── app.py                      # GUI entry point
 │   ├── main_window.py              # Main window
-│   ├── signals.py                  # Global Qt signals
-│   ├── widgets/                    # UI widgets
-│   │   ├── chat_widget.py          # Chat bubbles
-│   │   ├── waveform_widget.py      # Audio visualizer
-│   │   ├── quick_actions.py        # Action tiles
-│   │   ├── system_dashboard.py     # System charts
-│   │   └── input_bar.py            # Text/voice input
-│   ├── threads/                    # Background workers
-│   │   ├── audio_thread.py         # Microphone capture
-│   │   ├── command_worker.py       # Command processing
-│   │   └── system_monitor_thread.py
-│   └── styles/                     # Theming
-│       ├── colors.py               # Color palette
-│       └── dark_theme.py           # QSS stylesheet
+│   ├── widgets/                    # Chat, waveform, dashboard, etc.
+│   └── threads/                    # Background workers
 │
-├── utils/                          # Utility modules
-│   └── logger.py                   # Centralized logging system
-│
-├── data/                           # Local data (gitignored)
-│   └── settings.json               # Local settings
-│
-├── logs/                           # Application logs (auto-created)
-│   └── alfred_YYYYMMDD.log         # Daily log files
-│
-├── tests/                          # Test suite
+├── tests/                          # Test suite (70+ tests)
 │   ├── conftest.py                 # Shared fixtures & mocks
+│   ├── test_api.py                 # API endpoints + auth + sessions
 │   ├── test_brain.py               # Command routing & LLM tests
-│   ├── test_database.py            # Supabase integration tests
+│   ├── test_database.py            # Supabase connectivity tests
 │   ├── test_memory.py              # Memory CRUD & semantic search
-│   └── test_services.py            # Calendar, weather, file tests
+│   └── test_services.py            # Service integration tests
 │
-├── .env                            # Environment variables (gitignored)
-├── config.py                       # Configuration loader
-├── main.py                         # CLI entry point
-├── requirements.txt                # Python dependencies
-└── README.md
+├── .github/workflows/ci.yml        # GitHub Actions CI
+├── Dockerfile                      # Production container
+├── pyproject.toml                  # Packaging, ruff, mypy, pytest config
+├── requirements.txt                # Pinned dependencies
+├── config.py                       # Environment variable loader
+├── main.py                         # Voice CLI entry point
+└── LICENSE                         # MIT
 ```
 
 ---
 
-## Setup Instructions
+## Setup
 
-### 1. Clone the Repository
+### 1. Clone & Install
 
 ```bash
 git clone https://github.com/jamesstrohm55/ALFRED.git
 cd ALFRED
-```
-
-### 2. Set Up Virtual Environment
-
-```bash
-python -m venv venv
-
-# Windows
-venv\Scripts\activate
-
-# macOS/Linux
-source venv/bin/activate
-```
-
-### 3. Install Dependencies
-
-```bash
+python -m venv venv && source venv/bin/activate  # or venv\Scripts\activate on Windows
 pip install -r requirements.txt
 ```
 
-### 4. Configure Environment Variables
+### 2. Environment Variables
 
-Create a `.env` file in the project root:
+Create a `.env` file:
 
 ```env
-# OpenAI
-OPENAI_KEY=your_openai_api_key
-
-# OpenRouter (fallback LLM)
-OPENROUTER_API_KEY=your_openrouter_api_key
-
-# ElevenLabs (voice synthesis)
-XI_API_KEY=your_elevenlabs_api_key
-XI_VOICE_ID=your_elevenlabs_voice_id
-
-# OpenWeather
-WEATHER_API_KEY=your_openweather_api_key
-
-# Supabase (memory & conversation storage)
-SUPABASE_URL=your_supabase_project_url
+OPENAI_KEY=your_openai_key
+OPENROUTER_API_KEY=your_openrouter_key
+SUPABASE_URL=your_supabase_url
 SUPABASE_KEY=your_supabase_anon_key
+XI_API_KEY=your_elevenlabs_key          # optional
+XI_VOICE_ID=your_elevenlabs_voice_id    # optional
+WEATHER_API_KEY=your_openweather_key    # optional
 ```
 
-### 5. Set Up Supabase
+### 3. Supabase Schema
 
-1. Create a free project at [supabase.com](https://supabase.com)
-2. Go to **Database → Extensions** and enable the `vector` extension
-3. Go to **SQL Editor → New Query** and run this schema:
+Create a project at [supabase.com](https://supabase.com), enable the `vector` extension, then run in the SQL Editor:
 
 ```sql
 create extension if not exists vector;
@@ -178,7 +191,16 @@ create table conversations (
   session_id text not null,
   role text not null,
   content text not null,
+  user_id uuid references api_users(id),
   timestamp timestamptz default now()
+);
+
+create table api_users (
+  id uuid default gen_random_uuid() primary key,
+  label text not null,
+  api_key_hash text unique not null,
+  rate_limit integer default 30,
+  created_at timestamptz default now()
 );
 
 create table memory_metadata (
@@ -187,18 +209,16 @@ create table memory_metadata (
 );
 
 create index idx_memories_key on memories(key);
-create index idx_memories_category on memories(category);
 create index idx_conversations_session on conversations(session_id);
-create index idx_conversations_timestamp on conversations(timestamp);
+create index idx_conversations_user_id on conversations(user_id);
+create index idx_api_users_key_hash on api_users(api_key_hash);
 
 create or replace function match_memories(
   query_embedding vector(1536),
   match_threshold float default 0.5,
   match_count int default 5
 )
-returns table (
-  id bigint, key text, value text, category text, similarity float
-)
+returns table (id bigint, key text, value text, category text, similarity float)
 language sql stable
 as $$
   select memories.id, memories.key, memories.value, memories.category,
@@ -210,147 +230,48 @@ as $$
 $$;
 ```
 
-4. Copy your **Project URL** and **anon key** from **Settings → API** into your `.env`
+### 4. Register an API Key
 
-### 6. Set Up Google Calendar (Optional)
+```sql
+insert into api_users (label, api_key_hash, rate_limit) values (
+  'my-key',
+  encode(sha256(convert_to('your-chosen-key-string', 'UTF8')), 'hex'),
+  30
+);
+```
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project and enable the Google Calendar API
-3. Download `credentials.json` and place it in the project root
-4. On first run, you'll be prompted to authorize access
+### 5. Run
 
-### 7. Run Application
-
-**GUI Mode (Recommended):**
 ```bash
+# API server
+python -m api.run
+
+# GUI
 python -m ui.app
-```
 
-**CLI Mode:**
-```bash
+# Voice CLI
 python main.py
+
+# Docker
+docker build -t alfred . && docker run -p 8000:8000 --env-file .env alfred
 ```
-
----
-
-## GUI Overview
-
-The modern GUI features:
-
-| Component | Description |
-|-----------|-------------|
-| **Chat Area** | Messages displayed as chat bubbles with timestamps |
-| **Input Bar** | Text input with send button and microphone button |
-| **Waveform Visualizer** | Dual waveforms showing input (mic) and output (TTS) |
-| **System Dashboard** | Live CPU, RAM, Disk charts with 60s history |
-| **Quick Actions** | 10 tile buttons for common commands |
-
-### Quick Action Buttons
-
-| Button | Command |
-|--------|---------|
-| System | Check system status |
-| Weather | Get current weather |
-| Calendar | View upcoming events |
-| Time | Get current time |
-| VS Code | Launch VS Code |
-| Browser | Open web browser |
-| Add Event | Create calendar event |
-| Find File | Search for files |
-| Lock | Lock workstation |
-| Music | Play music |
-
----
-
-## Usage Examples
-
-| Command | Description |
-|---------|-------------|
-| "What is the weather today?" | Get current weather |
-| "Remember that my favorite color is blue" | Store a fact |
-| "What do you remember about my favorite color?" | Recall a fact |
-| "Forget my favorite color" | Delete a fact |
-| "What do you remember?" | List all stored facts |
-| "List personal memories" | List memories in a category |
-| "Search memory for travel" | Semantic search across memories |
-| "Tell time" | Get current time |
-| "Open browser" | Open default browser |
-| "Open VS Code" | Launch VS Code |
-| "Lock computer" | Lock workstation |
-| "What's on my calendar?" | List upcoming events |
-| "Add meeting Team standup tomorrow at 10am for 1 hour" | Add calendar event |
-| "Schedule event Doctor appointment on Friday at 2pm" | Add calendar event |
-| "Find resume" | Search for files |
-| "System status" | Get CPU/RAM/Disk stats |
 
 ---
 
 ## Testing
 
-Run the test suite with pytest:
-
 ```bash
 pytest tests/ -v
 ```
 
-Tests cover:
-- **Brain**: Command routing, LLM fallback chain, conversation history, RAG context injection
-- **Database**: Supabase connectivity, embedding generation
-- **Memory**: Remember/recall/forget, semantic search, auto-categorization
-- **Services**: Calendar date parsing, weather API, file operations
-
-All external dependencies (Supabase, LLM APIs, Google Calendar) are mocked via fixtures in `conftest.py`.
-
----
-
-## Roadmap
-
-- [x] Modern GUI with PySide6
-- [x] Voice waveform visualization
-- [x] Quick action tiles
-- [x] System dashboard with charts
-- [x] Chat bubble interface
-- [x] Offline TTS fallback (pyttsx3)
-- [x] Centralized logging system
-- [x] Thread-safe conversation history
-- [x] Optimized system monitoring (non-blocking CPU measurement)
-- [x] Natural language calendar commands
-- [x] File search with path validation and cancellation
-- [x] Cloud-backed memory via Supabase (PostgreSQL + pgvector)
-- [x] RAG — memories injected into LLM conversations
-- [x] Conversation persistence across sessions
-- [x] Semantic memory search command
-- [x] Auto-categorization of memories (personal, preference, general)
-- [ ] Email integration
-- [ ] Smart notification system
-- [ ] Advanced file manager with suggestions
-- [ ] Auto-pilot mode with multi-step reasoning
-- [ ] Emotional recognition and response adaptation
-
----
-
-## Contributing
-
-We welcome contributions! To contribute:
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/feature-name`
-3. Commit your changes: `git commit -m 'Add new feature'`
-4. Push to the branch: `git push origin feature/feature-name`
-5. Open a Pull Request
+70+ tests covering API endpoints, auth, sessions, brain routing, memory CRUD, semantic search, and service integrations. All external dependencies mocked — no API keys needed.
 
 ---
 
 ## License
 
-This project is licensed under the MIT License. See LICENSE for more information.
+MIT — see [LICENSE](LICENSE).
 
 ---
 
-## Credits
-
-Developed by James Strohm.
-
-Inspired by the vision of AI assistants like J.A.R.V.I.S and powered by modern LLMs, APIs, and system tools.
-
-> "I am A.L.F.R.E.D, your logical facilitator. How may I assist you today?"
+Developed by **James Strohm** · [jamesstrohm.dev](https://jamesstrohm.dev)
