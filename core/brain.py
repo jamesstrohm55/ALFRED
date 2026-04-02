@@ -64,11 +64,14 @@ def add_to_history(role: str, content: str, session_id: str | None = None, user_
             logger.error(f"Failed to persist conversation: {e}")
 
 
-def get_conversation_history(limit: int | None = None, session_id: str | None = None) -> list[dict[str, str]]:
+def get_conversation_history(
+    limit: int | None = None, session_id: str | None = None, user_id: str | None = None
+) -> list[dict[str, str]]:
     """
     Load recent conversation history from Supabase.
 
-    Looks at the given session first; if empty, loads tail of the previous session
+    For authenticated API users, history is scoped to that user and session only.
+    For local/runtime usage without a user_id, it can fall back to a previous session
     for continuity across restarts.
     """
     sid = session_id or SESSION_ID
@@ -77,17 +80,13 @@ def get_conversation_history(limit: int | None = None, session_id: str | None = 
         sb = get_supabase()
 
         # Try given session first
-        result = (
-            sb.table("conversations")
-            .select("role, content")
-            .eq("session_id", sid)
-            .order("timestamp", desc=True)
-            .limit(effective_limit)
-            .execute()
-        )
+        query = sb.table("conversations").select("role, content")
+        if user_id:
+            query = query.eq("user_id", user_id)
+        result = query.eq("session_id", sid).order("timestamp", desc=True).limit(effective_limit).execute()
 
         rows = result.data
-        if not rows:
+        if not rows and not user_id:
             # No messages in this session — load last few from any session
             result = (
                 sb.table("conversations")
@@ -176,7 +175,7 @@ def get_response(text: str, session_id: str | None = None, user_id: str | None =
 
         # General GPT Query with LLM fallback and conversation context
         add_to_history("user", text, session_id=session_id, user_id=user_id)
-        response = query_llm_with_context(text, session_id=session_id)
+        response = query_llm_with_context(text, session_id=session_id, user_id=user_id)
         add_to_history("assistant", response, session_id=session_id, user_id=user_id)
         return response
 
@@ -202,7 +201,7 @@ def handle_service_commands(text: str) -> str | None:
     return None
 
 
-def build_messages(user_text: str, session_id: str | None = None) -> list[dict[str, str]]:
+def build_messages(user_text: str, session_id: str | None = None, user_id: str | None = None) -> list[dict[str, str]]:
     """Build messages list with system prompt, RAG context, and conversation history."""
     # Build RAG-augmented system prompt
     memory_context = _build_memory_context(user_text)
@@ -219,15 +218,16 @@ def build_messages(user_text: str, session_id: str | None = None) -> list[dict[s
     messages: list[dict[str, str]] = [{"role": "system", "content": system_content}]
 
     # Load conversation history from Supabase
-    history = get_conversation_history(session_id=session_id)
+    history = get_conversation_history(session_id=session_id, user_id=user_id)
     messages.extend(history)
+    messages.append({"role": "user", "content": user_text})
 
     return messages
 
 
-def query_llm_with_context(text: str, session_id: str | None = None) -> str:
+def query_llm_with_context(text: str, session_id: str | None = None, user_id: str | None = None) -> str:
     """Query LLM with conversation context, RAG memory injection, and fallback support."""
-    messages: list[dict[str, str]] = build_messages(text, session_id=session_id)
+    messages: list[dict[str, str]] = build_messages(text, session_id=session_id, user_id=user_id)
 
     openrouter_client = OpenAI(api_key=OPENROUTER_API_KEY, base_url="https://openrouter.ai/api/v1")
 
