@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import sys
+from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -86,6 +87,16 @@ class TestRemember:
         upsert_call = mock_supabase.table.return_value.upsert.call_args
         row = upsert_call[0][0]
         assert row["tags"] == "animal,personal"
+
+    def test_remember_sets_iso_updated_at(self, mock_supabase):
+        from memory.memory_manager import remember
+
+        remember("color", "blue")
+        upsert_call = mock_supabase.table.return_value.upsert.call_args
+        row = upsert_call[0][0]
+        assert row["updated_at"] != "now()"
+        parsed = datetime.fromisoformat(row["updated_at"])
+        assert parsed.tzinfo is not None
 
     def test_remember_returns_true(self):
         from memory.memory_manager import remember
@@ -214,6 +225,12 @@ class TestCategorizeMemory:
         from memory.memory_manager import categorize_memory
 
         assert categorize_memory("item", "personal") is True
+
+        update_call = mock_supabase.table.return_value.update.call_args
+        row = update_call[0][0]
+        assert row["updated_at"] != "now()"
+        parsed = datetime.fromisoformat(row["updated_at"])
+        assert parsed.tzinfo is not None
 
     def test_categorize_nonexistent(self, mock_supabase):
         mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = _mock_execute([])
