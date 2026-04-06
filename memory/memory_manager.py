@@ -7,7 +7,7 @@ Embeddings are stored as a column on the memories row — no separate vector sto
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from memory.database import generate_embedding, get_supabase
@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 
 def _current_timestamp() -> str:
     """Return a UTC timestamp string suitable for timestamptz columns."""
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def remember(
