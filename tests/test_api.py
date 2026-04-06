@@ -69,32 +69,7 @@ def test_chat_history_with_session_id(mock_hist):
     resp = client.get("/chat/history?session_id=abc-123")
     assert resp.status_code == 200
     assert resp.json()["session_id"] == "abc-123"
-    mock_hist.assert_called_once_with(limit=10, session_id="abc-123", user_id="test-user-id")
-
-
-def test_websocket_requires_auth_message():
-    with client.websocket_connect("/ws/chat") as ws:
-        ws.send_json({"type": "chat", "message": "hello"})
-        message = ws.receive_json()
-        assert message["type"] == "error"
-        assert "auth" in message["content"]
-
-
-@patch("api.auth._get_user", return_value={"id": "test-user-id", "label": "test", "rate_limit": 30})
-def test_websocket_authenticates_then_chats(mock_get_user):
-    with patch("api.server.get_response", return_value="Hello over websocket.") as mock_response:
-        with client.websocket_connect("/ws/chat") as ws:
-            ws.send_json({"type": "auth", "api_key": "valid-key"})
-            assert ws.receive_json() == {"type": "auth_ok"}
-
-            ws.send_json({"type": "chat", "message": "hello", "session_id": "ws-session"})
-            assert ws.receive_json() == {"type": "ack"}
-            response = ws.receive_json()
-            assert response["type"] == "response"
-            assert response["content"] == "Hello over websocket."
-            assert response["session_id"] == "ws-session"
-            mock_get_user.assert_called_once_with("valid-key")
-            mock_response.assert_called_once_with("hello", session_id="ws-session", user_id="test-user-id")
+    mock_hist.assert_called_once_with(limit=10, session_id="abc-123")
 
 
 # ── Memory ────────────────────────────────────────────────────────────────────

@@ -69,10 +69,9 @@ def chat(req: ChatRequest, request: Request, user: dict | None = Depends(check_r
 def chat_history(
     limit: int = Query(default=10, ge=1, le=100),
     session_id: str | None = Query(default=None),
-    user: dict | None = Depends(check_rate_limit),
+    _user: dict | None = Depends(check_rate_limit),
 ):
-    user_id = user["id"] if user else None
-    history = get_conversation_history(limit=limit, session_id=session_id, user_id=user_id)
+    history = get_conversation_history(limit=limit, session_id=session_id)
     messages = [ConversationMessage(role=m["role"], content=m["content"]) for m in history]
     return ChatHistoryResponse(messages=messages, session_id=session_id or "")
 
@@ -131,28 +130,24 @@ def health():
 
 @app.websocket("/ws/chat")
 async def websocket_chat(ws: WebSocket):
+    # Validate API key from query param before accepting
+    api_key = ws.query_params.get("api_key")
+    if not api_key:
+        await ws.close(code=4001, reason="Missing api_key query parameter")
+        return
+
+    from api.auth import _get_user
+
+    user = _get_user(api_key)
+    if not user:
+        await ws.close(code=4001, reason="Invalid API key")
+        return
+
     await ws.accept()
+    session_id = str(uuid.uuid4())
+    user_id = user["id"]
 
     try:
-        auth_data = await asyncio.wait_for(ws.receive_text(), timeout=10)
-        auth_payload = json.loads(auth_data)
-
-        if auth_payload.get("type") != "auth" or not auth_payload.get("api_key"):
-            await ws.send_json({"type": "error", "content": 'Expected {"type": "auth", "api_key": "..."}'})
-            await ws.close(code=4001, reason="Authentication required")
-            return
-
-        from api.auth import _get_user
-
-        user = _get_user(auth_payload["api_key"])
-        if not user:
-            await ws.close(code=4001, reason="Invalid API key")
-            return
-
-        session_id = str(uuid.uuid4())
-        user_id = user["id"]
-        await ws.send_json({"type": "auth_ok"})
-
         while True:
             data = await ws.receive_text()
             payload = json.loads(data)
@@ -173,7 +168,5 @@ async def websocket_chat(ws: WebSocket):
             response = await loop.run_in_executor(None, fn)
 
             await ws.send_json({"type": "response", "content": response, "session_id": sid})
-    except asyncio.TimeoutError:
-        await ws.close(code=4001, reason="Authentication timeout")
     except WebSocketDisconnect:
         pass

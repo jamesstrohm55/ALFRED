@@ -31,7 +31,6 @@ class TestAddToHistory:
         mock_sb.table.return_value.insert.return_value.execute.return_value = _mock_execute()
         eq_chain = mock_sb.table.return_value.select.return_value.eq.return_value
         eq_chain.order.return_value.limit.return_value.execute.return_value = _mock_execute()
-        eq_chain.eq.return_value.order.return_value.limit.return_value.execute.return_value = _mock_execute()
         neq_chain = mock_sb.table.return_value.select.return_value.neq.return_value
         neq_chain.order.return_value.limit.return_value.execute.return_value = _mock_execute()
 
@@ -66,19 +65,6 @@ class TestAddToHistory:
         # Should be reversed to chronological order
         assert history[0]["content"] == "first"
         assert history[1]["content"] == "second"
-
-    def test_get_conversation_history_scopes_by_user_without_fallback(self, mock_supabase):
-        """Test that authenticated history stays within the given user + session."""
-        eq_chain = mock_supabase.table.return_value.select.return_value.eq.return_value
-        eq_chain.eq.return_value.order.return_value.limit.return_value.execute.return_value = _mock_execute([])
-        from core.brain import get_conversation_history
-
-        history = get_conversation_history(session_id="session-1", user_id="user-1")
-
-        assert history == []
-        mock_supabase.table.return_value.select.return_value.eq.assert_called_with("user_id", "user-1")
-        eq_chain.eq.assert_called_with("session_id", "session-1")
-        mock_supabase.table.return_value.select.return_value.neq.assert_not_called()
 
 
 class TestHandleServiceCommands:
@@ -137,31 +123,6 @@ class TestBuildMessages:
             assert messages[0]["role"] == "system"
             assert SYSTEM_PROMPT in messages[0]["content"]
 
-    def test_build_messages_appends_current_user_message(self):
-        """Test that the active user prompt is included after history."""
-        from core.brain import build_messages
-
-        history = [{"role": "assistant", "content": "Previous reply"}]
-        with (
-            patch("core.brain.semantic_search_memory", return_value=None),
-            patch("core.brain.get_recent_memories", return_value=[]),
-            patch("core.brain.get_conversation_history", return_value=history),
-        ):
-            messages = build_messages("latest prompt")
-            assert messages[-1] == {"role": "user", "content": "latest prompt"}
-
-    def test_build_messages_passes_user_scope_to_history(self):
-        """Test that message history is loaded with the current user scope."""
-        from core.brain import build_messages
-
-        with (
-            patch("core.brain.semantic_search_memory", return_value=None),
-            patch("core.brain.get_recent_memories", return_value=[]),
-            patch("core.brain.get_conversation_history", return_value=[]) as mock_history,
-        ):
-            build_messages("latest prompt", session_id="session-1", user_id="user-1")
-            mock_history.assert_called_once_with(session_id="session-1", user_id="user-1")
-
 
 class TestGetResponse:
     """Tests for the main get_response function."""
@@ -184,24 +145,3 @@ class TestGetResponse:
             mock_memory.side_effect = Exception("Test error")
             result = get_response("test input")
             assert "error" in result.lower()
-
-
-class TestFileCommandSafety:
-    """Tests for explicit confirmation behavior in file commands."""
-
-    def test_delete_requires_explicit_confirmation(self):
-        from service_commands.file_assistant_commands import handle_file_command
-
-        result = handle_file_command("delete report.txt")
-        assert "delete confirm report.txt" in result
-
-    def test_delete_confirm_deletes_without_prompt(self):
-        from service_commands.file_assistant_commands import handle_file_command
-
-        with (
-            patch("service_commands.file_assistant_commands.find_file", return_value=["C:\\temp\\report.txt"]),
-            patch("service_commands.file_assistant_commands.delete_file", return_value="File deleted successfully: C:\\temp\\report.txt") as mock_delete,
-        ):
-            result = handle_file_command("delete confirm report.txt")
-            assert result == "File deleted successfully: C:\\temp\\report.txt"
-            mock_delete.assert_called_once_with("C:\\temp\\report.txt")

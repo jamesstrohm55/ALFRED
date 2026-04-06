@@ -45,19 +45,22 @@ def handle_file_command(user_input: str) -> str | list[str] | None:
             else:
                 return "File not found."
 
-    elif user_input.startswith("delete confirm "):
-        filename = user_input.replace("delete confirm ", "", 1).strip()
+    elif user_input.startswith("delete "):
+        filename = user_input.replace("delete ", "").strip()
         matches = find_file(filename)
 
         if matches:
             file_to_delete: str = matches[0]
-            return delete_file(file_to_delete)
+            from core.voice import speak
+
+            speak("Are you sure you want to delete this file?")
+            confirm: str = input("Type yes to confirm or no to cancel: ").strip().lower()
+            if confirm == "yes":
+                return delete_file(file_to_delete)
+            else:
+                return "Delete operation canceled."
         else:
             return "File not found."
-
-    elif user_input.startswith("delete "):
-        filename = user_input.replace("delete ", "", 1).strip()
-        return f"Deletion requires explicit confirmation. Use: delete confirm {filename}"
 
     elif user_input.startswith("list files in "):
         folder: str = user_input.replace("list files in ", "").strip()
