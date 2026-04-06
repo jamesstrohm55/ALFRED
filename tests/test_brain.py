@@ -31,8 +31,6 @@ class TestAddToHistory:
         mock_sb.table.return_value.insert.return_value.execute.return_value = _mock_execute()
         eq_chain = mock_sb.table.return_value.select.return_value.eq.return_value
         eq_chain.order.return_value.limit.return_value.execute.return_value = _mock_execute()
-        neq_chain = mock_sb.table.return_value.select.return_value.neq.return_value
-        neq_chain.order.return_value.limit.return_value.execute.return_value = _mock_execute()
 
         with patch("core.brain.get_supabase", return_value=mock_sb):
             yield mock_sb
@@ -65,6 +63,26 @@ class TestAddToHistory:
         # Should be reversed to chronological order
         assert history[0]["content"] == "first"
         assert history[1]["content"] == "second"
+
+    def test_get_conversation_history_scopes_to_user(self, mock_supabase):
+        """Authenticated history reads should be filtered by user_id."""
+        user_chain = mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value
+        user_chain.order.return_value.limit.return_value.execute.return_value = _mock_execute(
+            [
+                {"role": "assistant", "content": "user reply"},
+                {"role": "user", "content": "user prompt"},
+            ]
+        )
+        from core.brain import get_conversation_history
+
+        history = get_conversation_history(session_id="shared", user_id="user-123")
+
+        first_eq = mock_supabase.table.return_value.select.return_value.eq.call_args_list[0]
+        second_eq = mock_supabase.table.return_value.select.return_value.eq.return_value.eq.call_args_list[0]
+        assert first_eq.args == ("user_id", "user-123")
+        assert second_eq.args == ("session_id", "shared")
+        assert history[0]["content"] == "user prompt"
+        assert history[1]["content"] == "user reply"
 
 
 class TestHandleServiceCommands:
@@ -122,6 +140,18 @@ class TestBuildMessages:
             assert len(messages) >= 1
             assert messages[0]["role"] == "system"
             assert SYSTEM_PROMPT in messages[0]["content"]
+
+    def test_build_messages_passes_user_scope_to_history(self):
+        """Prompt construction should use user-scoped history."""
+        from core.brain import build_messages
+
+        with (
+            patch("core.brain.semantic_search_memory", return_value=None),
+            patch("core.brain.get_recent_memories", return_value=[]),
+            patch("core.brain.get_conversation_history", return_value=[]) as mock_history,
+        ):
+            build_messages("test input", session_id="session-1", user_id="user-1")
+            mock_history.assert_called_once_with(session_id="session-1", user_id="user-1")
 
 
 class TestGetResponse:

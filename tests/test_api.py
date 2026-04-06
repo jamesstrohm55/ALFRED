@@ -62,6 +62,7 @@ def test_chat_history(mock_hist):
     data = resp.json()
     assert len(data["messages"]) == 2
     assert data["messages"][0]["role"] == "user"
+    mock_hist.assert_called_once_with(limit=5, session_id=None, user_id="test-user-id")
 
 
 @patch("api.server.get_conversation_history", return_value=[])
@@ -69,7 +70,18 @@ def test_chat_history_with_session_id(mock_hist):
     resp = client.get("/chat/history?session_id=abc-123")
     assert resp.status_code == 200
     assert resp.json()["session_id"] == "abc-123"
-    mock_hist.assert_called_once_with(limit=10, session_id="abc-123")
+    mock_hist.assert_called_once_with(limit=10, session_id="abc-123", user_id="test-user-id")
+
+
+@patch("api.server.get_conversation_history", return_value=[])
+def test_chat_history_is_scoped_to_authenticated_user(mock_hist):
+    app.dependency_overrides[check_rate_limit] = lambda: {"id": "user-2", "label": "test", "rate_limit": 30}
+    try:
+        resp = client.get("/chat/history?session_id=shared-session")
+        assert resp.status_code == 200
+        mock_hist.assert_called_once_with(limit=10, session_id="shared-session", user_id="user-2")
+    finally:
+        app.dependency_overrides[check_rate_limit] = lambda: _test_user
 
 
 # ── Memory ────────────────────────────────────────────────────────────────────

@@ -7,12 +7,18 @@ Embeddings are stored as a column on the memories row — no separate vector sto
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 
 from memory.database import generate_embedding, get_supabase
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+def _current_timestamp() -> str:
+    """Return a UTC timestamp string suitable for timestamptz columns."""
+    return datetime.now(timezone.utc).isoformat()
 
 
 def remember(
@@ -39,7 +45,7 @@ def remember(
         "value": value,
         "category": category,
         "tags": tags_str,
-        "updated_at": "now()",
+        "updated_at": _current_timestamp(),
     }
     if embedding is not None:
         row["embedding"] = embedding
@@ -154,7 +160,12 @@ def categorize_memory(key: str, category: str) -> bool:
     """Update the category of an existing memory."""
     try:
         sb = get_supabase()
-        result = sb.table("memories").update({"category": category, "updated_at": "now()"}).eq("key", key).execute()
+        result = (
+            sb.table("memories")
+            .update({"category": category, "updated_at": _current_timestamp()})
+            .eq("key", key)
+            .execute()
+        )
         return len(result.data) > 0
     except Exception as e:
         logger.error(f"Failed to categorize memory: {e}")

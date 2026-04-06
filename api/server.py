@@ -69,9 +69,10 @@ def chat(req: ChatRequest, request: Request, user: dict | None = Depends(check_r
 def chat_history(
     limit: int = Query(default=10, ge=1, le=100),
     session_id: str | None = Query(default=None),
-    _user: dict | None = Depends(check_rate_limit),
+    user: dict | None = Depends(check_rate_limit),
 ):
-    history = get_conversation_history(limit=limit, session_id=session_id)
+    user_id = user["id"] if user else None
+    history = get_conversation_history(limit=limit, session_id=session_id, user_id=user_id)
     messages = [ConversationMessage(role=m["role"], content=m["content"]) for m in history]
     return ChatHistoryResponse(messages=messages, session_id=session_id or "")
 

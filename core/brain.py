@@ -64,40 +64,32 @@ def add_to_history(role: str, content: str, session_id: str | None = None, user_
             logger.error(f"Failed to persist conversation: {e}")
 
 
-def get_conversation_history(limit: int | None = None, session_id: str | None = None) -> list[dict[str, str]]:
+def get_conversation_history(
+    limit: int | None = None,
+    session_id: str | None = None,
+    user_id: str | None = None,
+) -> list[dict[str, str]]:
     """
     Load recent conversation history from Supabase.
 
-    Looks at the given session first; if empty, loads tail of the previous session
-    for continuity across restarts.
+    For authenticated API users, history is always scoped to that user.
+    If a session is provided, only that session is returned.
     """
-    sid = session_id or SESSION_ID
     effective_limit = (limit or MAX_HISTORY) * 2  # user+assistant pairs
     try:
         sb = get_supabase()
+        query = sb.table("conversations").select("role, content")
 
-        # Try given session first
-        result = (
-            sb.table("conversations")
-            .select("role, content")
-            .eq("session_id", sid)
-            .order("timestamp", desc=True)
-            .limit(effective_limit)
-            .execute()
-        )
+        if user_id:
+            query = query.eq("user_id", user_id)
 
+        if session_id:
+            query = query.eq("session_id", session_id)
+        elif not user_id:
+            query = query.eq("session_id", SESSION_ID)
+
+        result = query.order("timestamp", desc=True).limit(effective_limit).execute()
         rows = result.data
-        if not rows:
-            # No messages in this session — load last few from any session
-            result = (
-                sb.table("conversations")
-                .select("role, content")
-                .neq("session_id", sid)
-                .order("timestamp", desc=True)
-                .limit(effective_limit)
-                .execute()
-            )
-            rows = result.data
 
         # Rows come newest-first; reverse to chronological order
         return [{"role": row["role"], "content": row["content"]} for row in reversed(rows)]
@@ -176,7 +168,7 @@ def get_response(text: str, session_id: str | None = None, user_id: str | None =
 
         # General GPT Query with LLM fallback and conversation context
         add_to_history("user", text, session_id=session_id, user_id=user_id)
-        response = query_llm_with_context(text, session_id=session_id)
+        response = query_llm_with_context(text, session_id=session_id, user_id=user_id)
         add_to_history("assistant", response, session_id=session_id, user_id=user_id)
         return response
 
@@ -202,7 +194,11 @@ def handle_service_commands(text: str) -> str | None:
     return None
 
 
-def build_messages(user_text: str, session_id: str | None = None) -> list[dict[str, str]]:
+def build_messages(
+    user_text: str,
+    session_id: str | None = None,
+    user_id: str | None = None,
+) -> list[dict[str, str]]:
     """Build messages list with system prompt, RAG context, and conversation history."""
     # Build RAG-augmented system prompt
     memory_context = _build_memory_context(user_text)
@@ -219,15 +215,15 @@ def build_messages(user_text: str, session_id: str | None = None) -> list[dict[s
     messages: list[dict[str, str]] = [{"role": "system", "content": system_content}]
 
     # Load conversation history from Supabase
-    history = get_conversation_history(session_id=session_id)
+    history = get_conversation_history(session_id=session_id, user_id=user_id)
     messages.extend(history)
 
     return messages
 
 
-def query_llm_with_context(text: str, session_id: str | None = None) -> str:
+def query_llm_with_context(text: str, session_id: str | None = None, user_id: str | None = None) -> str:
     """Query LLM with conversation context, RAG memory injection, and fallback support."""
-    messages: list[dict[str, str]] = build_messages(text, session_id=session_id)
+    messages: list[dict[str, str]] = build_messages(text, session_id=session_id, user_id=user_id)
 
     openrouter_client = OpenAI(api_key=OPENROUTER_API_KEY, base_url="https://openrouter.ai/api/v1")
 
