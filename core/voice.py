@@ -96,9 +96,7 @@ def _ensure_tts_thread() -> None:
     global _tts_thread
     with _tts_thread_lock:
         if _tts_thread is None or not _tts_thread.is_alive():
-            _tts_thread = threading.Thread(
-                target=_tts_worker, daemon=True, name="alfred-tts"
-            )
+            _tts_thread = threading.Thread(target=_tts_worker, daemon=True, name="alfred-tts")
             _tts_thread.start()
 
 
