@@ -19,6 +19,25 @@ client = TestClient(app)
 # ── Chat ──────────────────────────────────────────────────────────────────────
 
 
+@patch("api.server.stream_response", return_value=iter(["Hello", ", sir."]))
+def test_chat_stream(mock_stream):
+    resp = client.post("/chat/stream", json={"message": "hello"})
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/event-stream")
+    body = resp.text
+    assert '"type": "session"' in body
+    assert '"type": "token"' in body
+    assert '"type": "done"' in body
+    assert "Hello" in body
+
+
+@patch("api.server.stream_response", return_value=iter(["Hi"]))
+def test_chat_stream_session_id(mock_stream):
+    resp = client.post("/chat/stream", json={"message": "hi", "session_id": "test-sess"})
+    assert resp.status_code == 200
+    assert '"test-sess"' in resp.text
+
+
 @patch("api.server.get_response", return_value="Hello, sir.")
 def test_chat_success(mock_resp):
     resp = client.post("/chat", json={"message": "hello"})

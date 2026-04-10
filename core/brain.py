@@ -221,6 +221,73 @@ def build_messages(
     return messages
 
 
+def stream_response(
+    text: str,
+    session_id: str | None = None,
+    user_id: str | None = None,
+):
+    """
+    Generator: yields string tokens as they arrive from the LLM.
+
+    Non-LLM paths (memory/service/system commands) yield a single full
+    chunk. All paths persist both turns to Supabase before returning.
+    """
+    lower = text.lower().strip()
+
+    # Non-LLM paths — yield a single chunk and return
+    try:
+        immediate: str | None = handle_memory_commands(lower)
+        if not immediate:
+            immediate = handle_service_commands(lower)
+        if not immediate:
+            immediate = run_command(lower)
+        if immediate:
+            add_to_history("user", text, session_id=session_id, user_id=user_id)
+            add_to_history("assistant", immediate, session_id=session_id, user_id=user_id)
+            yield immediate
+            return
+    except Exception as e:
+        logger.error(f"Error in pre-LLM routing: {e}", exc_info=True)
+        yield "Sorry, I encountered an error while processing your request."
+        return
+
+    # LLM streaming path
+    add_to_history("user", text, session_id=session_id, user_id=user_id)
+    messages = build_messages(text, session_id=session_id, user_id=user_id)
+    openrouter_client = OpenAI(api_key=OPENROUTER_API_KEY, base_url="https://openrouter.ai/api/v1")
+
+    for model, label in [
+        ("nvidia/nemotron-3-nano-30b-a3b:free", "Nemotron 30B free"),
+        ("anthropic/claude-3.5-sonnet", "Claude 3.5 Sonnet"),
+    ]:
+        try:
+            stream = openrouter_client.chat.completions.create(
+                model=model,
+                messages=messages,
+                stream=True,
+            )
+            full_response = ""
+            for chunk in stream:
+                delta = chunk.choices[0].delta.content
+                if delta:
+                    full_response += delta
+                    yield delta
+            add_to_history("assistant", full_response, session_id=session_id, user_id=user_id)
+            return
+        except Exception as e:
+            logger.warning(f"Streaming LLM ({label}) failed: {e}")
+
+    # Final fallback — GPT-4o-mini (non-streaming)
+    try:
+        completion = client.chat.completions.create(model="gpt-4o-mini", messages=messages)
+        full_response = completion.choices[0].message.content
+        add_to_history("assistant", full_response, session_id=session_id, user_id=user_id)
+        yield full_response
+    except Exception as e:
+        logger.error(f"All LLMs failed in stream_response: {e}")
+        yield "Sorry, I couldn't process your request with any available models."
+
+
 def query_llm_with_context(text: str, session_id: str | None = None, user_id: str | None = None) -> str:
     """Query LLM with conversation context, RAG memory injection, and fallback support."""
     messages: list[dict[str, str]] = build_messages(text, session_id=session_id, user_id=user_id)
