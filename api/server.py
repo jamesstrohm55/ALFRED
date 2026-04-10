@@ -5,9 +5,11 @@ from __future__ import annotations
 import asyncio
 import json
 import uuid
+from collections.abc import Generator
 
 from fastapi import Depends, FastAPI, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 from api.auth import check_rate_limit
 from api.models import (
@@ -25,7 +27,7 @@ from api.models import (
     MemorySearchResponse,
     MemorySearchResult,
 )
-from core.brain import get_conversation_history, get_response
+from core.brain import get_conversation_history, get_response, stream_response
 from memory.database import check_connection
 from memory.memory_manager import forget, list_memory, recall, remember, semantic_search_memory
 
@@ -63,6 +65,43 @@ def chat(req: ChatRequest, request: Request, user: dict | None = Depends(check_r
     except Exception as e:
         return ChatResponse(response=f"Error processing request: {e}", session_id=session_id)
     return ChatResponse(response=response, session_id=session_id)
+
+
+@app.post("/chat/stream")
+def chat_stream(req: ChatRequest, request: Request, user: dict | None = Depends(check_rate_limit)):
+    """
+    Stream LLM response tokens via Server-Sent Events.
+
+    Each SSE event is JSON with one of these shapes:
+      {"type": "session", "session_id": "..."}   — sent first
+      {"type": "token",   "content":    "..."}   — one per chunk
+      {"type": "done"}                            — final event
+    """
+    session_id = req.session_id or str(uuid.uuid4())
+    user_id = user["id"] if user else None
+
+    from services.weather_service import set_client_ip
+
+    client_ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or request.client.host
+    set_client_ip(client_ip)
+
+    def _sse_generator() -> Generator[str, None, None]:
+        yield f"data: {json.dumps({'type': 'session', 'session_id': session_id})}\n\n"
+        try:
+            for token in stream_response(req.message, session_id=session_id, user_id=user_id):
+                yield f"data: {json.dumps({'type': 'token', 'content': token})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'token', 'content': f'Error: {e}'})}\n\n"
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+    return StreamingResponse(
+        _sse_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering for Railway/proxies
+        },
+    )
 
 
 @app.get("/chat/history", response_model=ChatHistoryResponse)
