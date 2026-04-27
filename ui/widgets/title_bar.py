@@ -26,6 +26,7 @@ class CustomTitleBar(QWidget):
         self.setFixedHeight(40)
 
     def _setup_ui(self):
+        self.setObjectName("alfredTitleBar")
         layout = QHBoxLayout(self)
         layout.setContentsMargins(12, 0, 6, 0)
         layout.setSpacing(8)
@@ -104,7 +105,7 @@ class CustomTitleBar(QWidget):
         layout.addWidget(self.close_btn)
 
         self.setStyleSheet(f"""
-            QWidget {{
+            #alfredTitleBar {{
                 background: qlineargradient(
                     x1:0, y1:0, x2:0, y2:1,
                     stop:0 #141428, stop:1 #0f0f20
@@ -114,34 +115,30 @@ class CustomTitleBar(QWidget):
         """)
 
     def _style_control_btn(self, btn: QPushButton, hover_red: bool):
+        base = """
+            QPushButton {
+                background-color: transparent;
+                color: rgba(255, 255, 255, 0.45);
+                border: none;
+                border-radius: 4px;
+                font-size: 13px;
+            }
+        """
         if hover_red:
-            btn.setStyleSheet("""
-                QPushButton {
-                    background-color: transparent;
-                    color: rgba(255, 255, 255, 0.45);
-                    border: none;
-                    border-radius: 4px;
-                    font-size: 13px;
-                }
+            hover = """
                 QPushButton:hover {
                     background-color: rgba(255, 60, 60, 0.2);
                     color: #ff6060;
                 }
-            """)
+            """
         else:
-            btn.setStyleSheet("""
-                QPushButton {
-                    background-color: transparent;
-                    color: rgba(255, 255, 255, 0.45);
-                    border: none;
-                    border-radius: 4px;
-                    font-size: 13px;
-                }
+            hover = """
                 QPushButton:hover {
                     background-color: rgba(255, 255, 255, 0.07);
                     color: rgba(255, 255, 255, 0.9);
                 }
-            """)
+            """
+        btn.setStyleSheet(base + hover)
 
     def set_maximized_state(self, is_maximized: bool):
         self._is_maximized = is_maximized
