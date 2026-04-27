@@ -32,6 +32,7 @@ from ui.styles.colors import COLORS
 # HistoryLineEdit
 # ---------------------------------------------------------------------------
 
+
 class HistoryLineEdit(QLineEdit):
     """QLineEdit with up/down arrow key command history navigation."""
 
@@ -51,6 +52,7 @@ class HistoryLineEdit(QLineEdit):
 # WaveformCanvas
 # ---------------------------------------------------------------------------
 
+
 class WaveformCanvas(QWidget):
     """Draws amplitude bars via QPainter. Updated by InputZone."""
 
@@ -67,6 +69,7 @@ class WaveformCanvas(QWidget):
 
     def paintEvent(self, event):
         from PySide6.QtGui import QPainter
+
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         w, h = self.width(), self.height()
@@ -94,6 +97,7 @@ class WaveformCanvas(QWidget):
 # ---------------------------------------------------------------------------
 # InputZone
 # ---------------------------------------------------------------------------
+
 
 class InputZone(QWidget):
     """
@@ -167,9 +171,7 @@ class InputZone(QWidget):
 
         self._state_label = QLabel("LISTENING")
         self._state_label.setFont(QFont("Segoe UI", 8, QFont.Bold))
-        self._state_label.setStyleSheet(
-            "color: rgba(0, 212, 255, 0.6); letter-spacing: 2px; background: transparent;"
-        )
+        self._state_label.setStyleSheet("color: rgba(0, 212, 255, 0.6); letter-spacing: 2px; background: transparent;")
         self._state_label.setFixedWidth(110)
 
         self._waveform_canvas = WaveformCanvas(QColor(COLORS["accent_cyan"]))
@@ -343,9 +345,9 @@ class InputZone(QWidget):
         normalized = np.clip(np.abs(chunk) / 32768.0, 0, 1)
         spb = max(1, len(normalized) // self._NUM_BARS)
         for i in range(self._NUM_BARS):
-            band = normalized[i * spb: min((i + 1) * spb, len(normalized))]
+            band = normalized[i * spb : min((i + 1) * spb, len(normalized))]
             if len(band):
-                self._target_amplitudes[i] = min(1.0, float(np.sqrt(np.mean(band ** 2))) * 8.0)
+                self._target_amplitudes[i] = min(1.0, float(np.sqrt(np.mean(band**2))) * 8.0)
 
     @Slot(object)
     def update_output_waveform(self, audio_chunk) -> None:
