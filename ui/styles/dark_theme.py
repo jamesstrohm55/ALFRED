@@ -1,11 +1,11 @@
 """
-JARVIS-inspired dark theme QSS stylesheet for ALFRED GUI.
+Elevated JARVIS dark theme QSS stylesheet for ALFRED GUI.
 """
 
 from .colors import COLORS
 
 DARK_THEME_QSS = f"""
-/* ===== Global Styles ===== */
+/* ===== Global ===== */
 QWidget {{
     background-color: {COLORS["bg_primary"]};
     color: {COLORS["text_primary"]};
@@ -30,7 +30,7 @@ QLabel[class="title"] {{
 }}
 
 QLabel[class="subtitle"] {{
-    font-size: 11pt;
+    font-size: 10pt;
     color: {COLORS["text_secondary"]};
 }}
 
@@ -46,7 +46,7 @@ QPushButton {{
 
 QPushButton:hover {{
     background-color: {COLORS["bg_hover"]};
-    border-color: {COLORS["border_hover"]};
+    border-color: rgba(0, 212, 255, 0.25);
 }}
 
 QPushButton:pressed {{
@@ -79,7 +79,7 @@ QPushButton[class="icon"] {{
 }}
 
 QPushButton[class="icon"]:hover {{
-    background-color: {COLORS["bg_tertiary"]};
+    background-color: rgba(255, 255, 255, 0.06);
 }}
 
 /* ===== Line Edit ===== */
@@ -101,7 +101,7 @@ QLineEdit:disabled {{
     color: {COLORS["text_disabled"]};
 }}
 
-/* ===== Text Edit / Plain Text Edit ===== */
+/* ===== Text Edit ===== */
 QTextEdit, QPlainTextEdit {{
     background-color: {COLORS["bg_secondary"]};
     color: {COLORS["text_primary"]};
@@ -114,7 +114,6 @@ QTextEdit:focus, QPlainTextEdit:focus {{
     border-color: {COLORS["accent_cyan"]};
 }}
 
-/* ===== Text Browser (Markdown) ===== */
 QTextBrowser {{
     background-color: transparent;
     color: {COLORS["text_primary"]};
@@ -134,15 +133,15 @@ QScrollArea > QWidget > QWidget {{
 /* ===== Scroll Bars ===== */
 QScrollBar:vertical {{
     background-color: {COLORS["scrollbar_bg"]};
-    width: 10px;
+    width: 8px;
     margin: 0;
-    border-radius: 5px;
+    border-radius: 4px;
 }}
 
 QScrollBar::handle:vertical {{
     background-color: {COLORS["scrollbar_handle"]};
     min-height: 30px;
-    border-radius: 5px;
+    border-radius: 4px;
     margin: 2px;
 }}
 
@@ -161,15 +160,15 @@ QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
 
 QScrollBar:horizontal {{
     background-color: {COLORS["scrollbar_bg"]};
-    height: 10px;
+    height: 8px;
     margin: 0;
-    border-radius: 5px;
+    border-radius: 4px;
 }}
 
 QScrollBar::handle:horizontal {{
     background-color: {COLORS["scrollbar_handle"]};
     min-width: 30px;
-    border-radius: 5px;
+    border-radius: 4px;
     margin: 2px;
 }}
 
@@ -180,20 +179,6 @@ QScrollBar::handle:horizontal:hover {{
 QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
     width: 0;
     background: none;
-}}
-
-/* ===== Progress Bar ===== */
-QProgressBar {{
-    background-color: {COLORS["progress_bg"]};
-    border: none;
-    border-radius: 4px;
-    height: 8px;
-    text-align: center;
-}}
-
-QProgressBar::chunk {{
-    background-color: {COLORS["progress_chunk"]};
-    border-radius: 4px;
 }}
 
 /* ===== Frames ===== */
@@ -281,7 +266,7 @@ QTabBar::tab:hover:!selected {{
 QToolTip {{
     background-color: {COLORS["bg_tertiary"]};
     color: {COLORS["text_primary"]};
-    border: 1px solid {COLORS["border_default"]};
+    border: 1px solid rgba(0, 212, 255, 0.2);
     border-radius: 4px;
     padding: 6px;
 }}
@@ -318,32 +303,9 @@ QStatusBar {{
 }}
 
 /* ===== Custom Widget Classes ===== */
-QWidget[class="chat-bubble-user"] {{
-    background-color: {COLORS["bubble_user"]};
-    border-radius: 16px;
-    border-top-right-radius: 4px;
-}}
-
-QWidget[class="chat-bubble-alfred"] {{
-    background-color: {COLORS["bubble_alfred"]};
-    border-radius: 16px;
-    border-top-left-radius: 4px;
-}}
-
 QWidget[class="waveform"] {{
     background-color: {COLORS["waveform_bg"]};
     border-radius: 8px;
-}}
-
-QWidget[class="action-tile"] {{
-    background-color: {COLORS["bg_tertiary"]};
-    border-radius: 8px;
-    border: 2px solid transparent;
-}}
-
-QWidget[class="action-tile"]:hover {{
-    background-color: {COLORS["bg_hover"]};
-    border-color: {COLORS["border_hover"]};
 }}
 
 QWidget[class="dashboard-panel"] {{
@@ -354,15 +316,13 @@ QWidget[class="dashboard-panel"] {{
 
 /* ===== Custom Title Bar ===== */
 CustomTitleBar {{
-    background-color: {COLORS["bg_secondary"]};
     border-top-left-radius: 10px;
     border-top-right-radius: 10px;
-    border-bottom: 1px solid {COLORS["border_default"]};
 }}
 
 /* ===== Collapsible Sidebar ===== */
 CollapsibleSidebar {{
-    background-color: {COLORS["bg_primary"]};
+    background-color: {COLORS["bg_sidebar"]};
 }}
 
 /* ===== Settings Dialog ===== */
