@@ -38,7 +38,7 @@ QLabel[class="subtitle"] {{
 QPushButton {{
     background-color: {COLORS["bg_tertiary"]};
     color: {COLORS["text_primary"]};
-    border: 1px solid {COLORS["border_default"]};
+    border: 1px solid transparent;
     border-radius: 6px;
     padding: 8px 16px;
     font-weight: 500;
@@ -178,6 +178,10 @@ QScrollBar::handle:horizontal:hover {{
 
 QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
     width: 0;
+    background: none;
+}}
+
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {{
     background: none;
 }}
 
