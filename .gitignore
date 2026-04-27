@@ -8,3 +8,4 @@ data/
 command_log.txt
 .claude/
 logs/.superpowers/
+.worktrees/
