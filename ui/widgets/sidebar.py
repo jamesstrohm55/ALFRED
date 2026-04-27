@@ -35,7 +35,7 @@ class CollapsibleSidebar(QWidget):
         # Toggle button bar
         toggle_bar = QWidget()
         toggle_bar.setFixedHeight(36)
-        toggle_bar.setStyleSheet(f"background-color: {COLORS['bg_secondary']};")
+        toggle_bar.setStyleSheet(f"background-color: {COLORS['bg_sidebar']};")
         toggle_layout = QVBoxLayout(toggle_bar)
         toggle_layout.setContentsMargins(4, 4, 4, 4)
 
@@ -58,7 +58,7 @@ class CollapsibleSidebar(QWidget):
                 font-size: 16px;
             }}
             QPushButton:hover {{
-                background-color: {COLORS["bg_hover"]};
+                background-color: rgba(0, 212, 255, 0.08);
                 color: {COLORS["accent_cyan"]};
             }}
         """)
@@ -67,6 +67,7 @@ class CollapsibleSidebar(QWidget):
 
         # Content area (dashboard + quick actions will be added here)
         self._content_widget = QWidget()
+        self._content_widget.setStyleSheet(f"background-color: {COLORS['bg_sidebar']};")
         self._content_layout = QVBoxLayout(self._content_widget)
         self._content_layout.setContentsMargins(0, 0, 0, 0)
         self._content_layout.setSpacing(12)
