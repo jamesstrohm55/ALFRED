@@ -7,4 +7,4 @@ token.pickle
 data/
 command_log.txt
 .claude/
-logs/
+logs/.superpowers/
