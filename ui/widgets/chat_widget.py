@@ -8,6 +8,7 @@ from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QTimer, Signal,
 from PySide6.QtGui import QFont, QPainter, QPainterPath, QPixmap
 from PySide6.QtWidgets import (
     QFrame,
+    QGraphicsDropShadowEffect,
     QGraphicsOpacityEffect,
     QHBoxLayout,
     QLabel,
@@ -61,7 +62,8 @@ def _render_markdown_html(text: str) -> str:
         body {{
             color: {COLORS["text_primary"]};
             font-family: 'Segoe UI', Arial, sans-serif;
-            font-size: 10pt;
+            font-size: 10.5pt;
+            line-height: 1.6;
             margin: 0;
             padding: 0;
         }}
@@ -82,33 +84,17 @@ def _render_markdown_html(text: str) -> str:
             margin: 6px 0;
             overflow-x: auto;
         }}
-        pre code {{
-            background-color: transparent;
-            padding: 0;
-        }}
+        pre code {{ background-color: transparent; padding: 0; }}
         strong, b {{ color: {COLORS["text_primary"]}; }}
         em, i {{ color: {COLORS["text_secondary"]}; }}
         a {{ color: {COLORS["accent_cyan"]}; text-decoration: none; }}
         a:hover {{ text-decoration: underline; }}
         ul, ol {{ margin: 4px 0; padding-left: 20px; }}
         li {{ margin: 2px 0; }}
-        table {{
-            border-collapse: collapse;
-            margin: 6px 0;
-        }}
-        th, td {{
-            border: 1px solid {COLORS["border_default"]};
-            padding: 6px 10px;
-            text-align: left;
-        }}
-        th {{
-            background-color: {COLORS["bg_primary"]};
-            color: {COLORS["accent_cyan"]};
-        }}
-        h1, h2, h3, h4 {{
-            color: {COLORS["accent_cyan"]};
-            margin: 8px 0 4px 0;
-        }}
+        table {{ border-collapse: collapse; margin: 6px 0; }}
+        th, td {{ border: 1px solid {COLORS["border_default"]}; padding: 6px 10px; text-align: left; }}
+        th {{ background-color: {COLORS["bg_primary"]}; color: {COLORS["accent_cyan"]}; }}
+        h1, h2, h3, h4 {{ color: {COLORS["accent_cyan"]}; margin: 8px 0 4px 0; }}
         blockquote {{
             border-left: 3px solid {COLORS["accent_cyan"]};
             margin: 6px 0;
@@ -147,16 +133,31 @@ class ChatBubble(QFrame):
             circular = _create_circular_pixmap(avatar_pixmap, 32)
             avatar_label.setPixmap(circular)
         else:
-            avatar_label.setText("U" if self.is_user else "A")
+            avatar_label.setText("J" if self.is_user else "A")
             avatar_label.setAlignment(Qt.AlignCenter)
-            color = COLORS["bubble_user"] if self.is_user else COLORS["accent_cyan"]
-            avatar_label.setStyleSheet(f"""
-                background-color: {color};
-                color: white;
-                border-radius: 16px;
-                font-weight: bold;
-                font-size: 12px;
-            """)
+            if self.is_user:
+                avatar_label.setStyleSheet("""
+                    background-color: rgba(0, 102, 204, 0.4);
+                    color: rgba(255, 255, 255, 0.8);
+                    border: 1.5px solid rgba(0, 136, 255, 0.4);
+                    border-radius: 16px;
+                    font-weight: bold;
+                    font-size: 11px;
+                """)
+            else:
+                avatar_label.setStyleSheet(f"""
+                    background-color: {COLORS["bg_primary"]};
+                    color: {COLORS["accent_cyan"]};
+                    border: 2px solid {COLORS["accent_cyan"]};
+                    border-radius: 16px;
+                    font-weight: bold;
+                    font-size: 11px;
+                """)
+                glow = QGraphicsDropShadowEffect()
+                glow.setBlurRadius(10)
+                glow.setColor(Qt.cyan)
+                glow.setOffset(0, 0)
+                avatar_label.setGraphicsEffect(glow)
 
         # Content area
         content_widget = QFrame()
@@ -166,14 +167,18 @@ class ChatBubble(QFrame):
         content_layout.setSpacing(4)
 
         # Sender label
-        sender_label = QLabel(self.sender)
-        sender_label.setFont(QFont("Segoe UI", 8, QFont.Bold))
+        sender_label = QLabel(self.sender.upper())
+        sender_label.setFont(QFont("Segoe UI", 7, QFont.Bold))
         sender_label.setStyleSheet("background: transparent;")
         if self.is_user:
-            sender_label.setStyleSheet(f"color: {COLORS['text_secondary']}; background: transparent;")
+            sender_label.setStyleSheet(
+                "color: rgba(255,255,255,0.35); background: transparent; letter-spacing: 2px;"
+            )
             sender_label.setAlignment(Qt.AlignRight)
         else:
-            sender_label.setStyleSheet(f"color: {COLORS['accent_cyan']}; background: transparent;")
+            sender_label.setStyleSheet(
+                "color: rgba(0, 212, 255, 0.55); background: transparent; letter-spacing: 2px;"
+            )
             sender_label.setAlignment(Qt.AlignLeft)
 
         # Message content
@@ -207,8 +212,8 @@ class ChatBubble(QFrame):
         # Timestamp
         time_str = timestamp.strftime("%H:%M") if timestamp else datetime.now().strftime("%H:%M")
         time_label = QLabel(time_str)
-        time_label.setFont(QFont("Segoe UI", 7))
-        time_label.setStyleSheet(f"color: {COLORS['text_disabled']}; background: transparent;")
+        time_label.setFont(QFont("Consolas", 7))
+        time_label.setStyleSheet("color: rgba(255,255,255,0.20); background: transparent;")
         if self.is_user:
             time_label.setAlignment(Qt.AlignRight)
         else:
@@ -235,67 +240,84 @@ class ChatBubble(QFrame):
             self.message_label.setFixedHeight(int(doc_height) + 4)
 
     def _apply_style(self):
-        """Apply styling based on sender."""
         if self.is_user:
             self.setStyleSheet(f"""
                 ChatBubble {{
-                    background-color: {COLORS["bubble_user"]};
-                    border-radius: 16px;
-                    border-top-right-radius: 4px;
+                    background-color: {COLORS["bubble_user_bg"]};
+                    border: 1px solid {COLORS["bubble_user_border"]};
+                    border-radius: 14px;
+                    border-top-right-radius: 3px;
                 }}
             """)
         else:
             self.setStyleSheet(f"""
                 ChatBubble {{
-                    background-color: {COLORS["bubble_alfred"]};
-                    border-radius: 16px;
-                    border-top-left-radius: 4px;
-                    border: 1px solid {COLORS["border_default"]};
+                    background-color: {COLORS["bubble_alfred_bg"]};
+                    border: 1px solid {COLORS["bubble_alfred_border"]};
+                    border-radius: 14px;
+                    border-top-left-radius: 3px;
                 }}
             """)
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(12)
+        shadow.setColor(Qt.black)
+        shadow.setOffset(0, 2)
+        self.setGraphicsEffect(shadow)
 
 
 class TypingIndicator(QFrame):
-    """Animated typing indicator showing ALFRED is processing."""
+    """Three-dot wave animation indicating ALFRED is processing."""
+
+    _OPACITIES = [
+        [1.0, 0.4, 0.15],
+        [0.4, 1.0, 0.4],
+        [0.15, 0.4, 1.0],
+    ]
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._dots = 0
+        self._phase = 0
+        self._dot_labels: list[QLabel] = []
         self._setup_ui()
         self._timer = QTimer()
         self._timer.timeout.connect(self._animate)
 
     def _setup_ui(self):
-        """Set up the indicator UI."""
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(14, 10, 14, 10)
+        layout.setContentsMargins(16, 13, 16, 13)
+        layout.setSpacing(5)
 
-        self.label = QLabel("A.L.F.R.E.D is thinking")
-        self.label.setFont(QFont("Segoe UI", 9))
-        self.label.setStyleSheet(f"color: {COLORS['text_secondary']};")
+        for _ in range(3):
+            dot = QLabel("●")
+            dot.setFont(QFont("Segoe UI", 8))
+            dot.setStyleSheet(f"color: {COLORS['accent_cyan']}; background: transparent;")
+            self._dot_labels.append(dot)
+            layout.addWidget(dot)
 
-        layout.addWidget(self.label)
+        layout.addStretch()
 
-        self.setStyleSheet(f"""
-            QFrame {{
-                background-color: {COLORS["bg_tertiary"]};
-                border-radius: 12px;
-            }}
+        self.setStyleSheet("""
+            QFrame {
+                background-color: rgba(0, 212, 255, 0.04);
+                border: 1px solid rgba(0, 212, 255, 0.12);
+                border-radius: 14px;
+                border-top-left-radius: 3px;
+            }
         """)
 
     def _animate(self):
-        """Animate the dots."""
-        self._dots = (self._dots + 1) % 4
-        dots = "." * self._dots
-        self.label.setText(f"A.L.F.R.E.D is thinking{dots}")
+        self._phase = (self._phase + 1) % 3
+        opacities = self._OPACITIES[self._phase]
+        for dot, opacity in zip(self._dot_labels, opacities):
+            dot.setStyleSheet(
+                f"color: rgba(0, 212, 255, {opacity}); background: transparent;"
+            )
 
     def start(self):
-        """Start the animation."""
-        self._timer.start(400)
+        self._timer.start(150)
         self.show()
 
     def stop(self):
-        """Stop the animation."""
         self._timer.stop()
         self.hide()
 

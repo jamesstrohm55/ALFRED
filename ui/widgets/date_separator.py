@@ -20,30 +20,26 @@ class DateSeparator(QWidget):
         self._setup_ui()
 
     def _setup_ui(self):
-        """Set up the separator layout."""
         self.setStyleSheet("background-color: transparent;")
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(20, 8, 20, 8)
-        layout.setSpacing(12)
+        layout.setSpacing(10)
 
-        # Left line
         left_line = QFrame()
         left_line.setFrameShape(QFrame.HLine)
-        left_line.setStyleSheet(f"color: {COLORS['border_default']}; background-color: {COLORS['border_default']};")
         left_line.setFixedHeight(1)
+        left_line.setStyleSheet("background-color: rgba(0, 212, 255, 0.08); border: none;")
 
-        # Date label
-        date_label = QLabel(self._format_date())
-        date_label.setFont(QFont("Segoe UI", 8))
-        date_label.setStyleSheet(f"color: {COLORS['text_disabled']}; background: transparent;")
+        date_label = QLabel(self._format_date().upper())
+        date_label.setFont(QFont("Segoe UI", 7))
+        date_label.setStyleSheet("color: rgba(0, 212, 255, 0.35); letter-spacing: 2px; background: transparent;")
         date_label.setAlignment(Qt.AlignCenter)
 
-        # Right line
         right_line = QFrame()
         right_line.setFrameShape(QFrame.HLine)
-        right_line.setStyleSheet(f"color: {COLORS['border_default']}; background-color: {COLORS['border_default']};")
         right_line.setFixedHeight(1)
+        right_line.setStyleSheet("background-color: rgba(0, 212, 255, 0.08); border: none;")
 
         layout.addWidget(left_line, stretch=1)
         layout.addWidget(date_label)
