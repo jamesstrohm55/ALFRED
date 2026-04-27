@@ -14,14 +14,13 @@ from ui.threads.audio_thread import AudioCaptureThread
 from ui.threads.command_worker import CommandWorker, QuickActionWorker
 from ui.threads.system_monitor_thread import SystemMonitorThread
 from ui.widgets.chat_widget import ChatWidget
-from ui.widgets.input_bar import InputBar
+from ui.widgets.input_zone import InputZone
 from ui.widgets.quick_actions import QuickActionsWidget
 from ui.widgets.settings_panel import SettingsPanel
 from ui.widgets.sidebar import CollapsibleSidebar
 from ui.widgets.status_bar import StatusBar
 from ui.widgets.system_dashboard import SystemDashboard
 from ui.widgets.title_bar import CustomTitleBar
-from ui.widgets.waveform_widget import DualWaveformWidget
 
 
 class MainWindow(QMainWindow):
@@ -35,30 +34,21 @@ class MainWindow(QMainWindow):
         self._connect_signals()
         self._setup_shortcuts()
 
-        # Show welcome message
         self.chat_widget.add_message(
-            "A.L.F.R.E.D", "Hello! I'm **A.L.F.R.E.D**, your personal assistant. How can I help you today?"
+            "A.L.F.R.E.D",
+            "Hello! I'm **A.L.F.R.E.D**, your personal assistant. How can I help you today?",
         )
-
-        # Set initial status
         self.status_bar.set_llm_status("Claude 3.5 Sonnet", True)
 
     def _setup_window(self):
-        """Configure the main window as frameless."""
         self.setWindowTitle("A.L.F.R.E.D")
         self.setMinimumSize(1000, 700)
         self.resize(1200, 800)
-
-        # Frameless window
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
-
-        # Apply dark theme
         self.setStyleSheet(DARK_THEME_QSS)
 
     def _setup_ui(self):
-        """Set up the main UI layout."""
-        # Central widget with border for frameless window
         central_widget = QWidget()
         central_widget.setObjectName("centralFrame")
         central_widget.setStyleSheet(f"""
@@ -70,132 +60,93 @@ class MainWindow(QMainWindow):
         """)
         self.setCentralWidget(central_widget)
 
-        # Main vertical layout
         main_v_layout = QVBoxLayout(central_widget)
         main_v_layout.setContentsMargins(1, 1, 1, 1)
         main_v_layout.setSpacing(0)
 
-        # Custom title bar
         self.title_bar = CustomTitleBar()
         self.title_bar.minimize_clicked.connect(self.showMinimized)
         self.title_bar.maximize_clicked.connect(self._toggle_maximize)
         self.title_bar.close_clicked.connect(self.close)
         self.title_bar.settings_clicked.connect(self._open_settings)
-
         main_v_layout.addWidget(self.title_bar)
 
-        # Content area (sidebar + right panel)
         content_widget = QWidget()
         content_widget.setStyleSheet(f"background-color: {COLORS['bg_primary']};")
         content_layout = QHBoxLayout(content_widget)
-        content_layout.setContentsMargins(12, 8, 12, 0)
-        content_layout.setSpacing(12)
+        content_layout.setContentsMargins(10, 8, 10, 0)
+        content_layout.setSpacing(10)
 
-        # Collapsible sidebar
         self.sidebar = CollapsibleSidebar()
         self._setup_sidebar()
-
-        # Right panel (chat area)
         right_panel = self._create_right_panel()
 
         content_layout.addWidget(self.sidebar)
         content_layout.addWidget(right_panel, stretch=1)
-
         main_v_layout.addWidget(content_widget, stretch=1)
 
-        # Status bar at the bottom
         self.status_bar = StatusBar()
         main_v_layout.addWidget(self.status_bar)
 
-        # Size grip for resizing frameless window
         self._size_grip = QSizeGrip(central_widget)
         self._size_grip.setFixedSize(16, 16)
         self._size_grip.setStyleSheet("background: transparent;")
 
     def _setup_sidebar(self):
-        """Set up sidebar with dashboard and quick actions."""
-        # System dashboard
         self.system_dashboard = SystemDashboard()
-
-        # Quick actions
         self.quick_actions = QuickActionsWidget()
-
         self.sidebar.add_widget(self.system_dashboard)
         self.sidebar.add_widget(self.quick_actions)
         self.sidebar.add_stretch()
 
     def _create_right_panel(self) -> QWidget:
-        """Create the right chat panel."""
         panel = QWidget()
-
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
+        layout.setSpacing(6)
 
-        # Chat widget
         self.chat_widget = ChatWidget()
-
-        # Waveform widget
-        self.waveform_widget = DualWaveformWidget()
-
-        # Input bar
-        self.input_bar = InputBar()
+        self.input_zone = InputZone()
 
         layout.addWidget(self.chat_widget, stretch=1)
-        layout.addWidget(self.waveform_widget)
-        layout.addWidget(self.input_bar)
-
+        layout.addWidget(self.input_zone)
         return panel
 
     def _setup_threads(self):
-        """Initialize background threads."""
-        # Thread pool for command workers
         self.thread_pool = QThreadPool()
         self.thread_pool.setMaxThreadCount(4)
 
-        # System monitor thread
         self.system_monitor_thread = SystemMonitorThread(interval_ms=1000)
         self.system_monitor_thread.stats_updated.connect(self.system_dashboard.update_stats)
         self.system_monitor_thread.start()
 
-        # Audio capture thread
         self.audio_thread = AudioCaptureThread()
-        self.audio_thread.audio_chunk.connect(self.waveform_widget.update_input)
+        self.audio_thread.audio_chunk.connect(self.input_zone.update_input_waveform)
         self.audio_thread.speech_recognized.connect(self._on_speech_recognized)
         self.audio_thread.listening_state_changed.connect(self._on_listening_state_changed)
         self.audio_thread.error_occurred.connect(self._on_audio_error)
         self.audio_thread.start()
 
     def _connect_signals(self):
-        """Connect UI signals to handlers."""
-        # Input bar signals
-        self.input_bar.text_submitted.connect(self._on_text_submitted)
-        self.input_bar.voice_button_clicked.connect(self._on_voice_button_clicked)
-
-        # Quick actions signals
+        self.input_zone.text_submitted.connect(self._on_text_submitted)
+        self.input_zone.voice_button_clicked.connect(self._on_voice_button_clicked)
         self.quick_actions.action_triggered.connect(self._on_quick_action)
 
-        # Global signals
         signals.response_ready.connect(self._on_response_ready)
-        signals.output_audio_data.connect(self.waveform_widget.update_output)
+        signals.output_audio_data.connect(self.input_zone.update_output_waveform)
 
-        # Speaking signals for output waveform animation and status bar
-        signals.speaking_started.connect(self.waveform_widget.start_output_simulation)
+        signals.speaking_started.connect(lambda: self.input_zone.set_state(InputZone.SPEAKING))
         signals.speaking_started.connect(lambda: self.status_bar.set_speaking(True))
-        signals.speaking_finished.connect(self.waveform_widget.stop_output_simulation)
+        signals.speaking_finished.connect(lambda: self.input_zone.set_state(InputZone.IDLE))
         signals.speaking_finished.connect(lambda: self.status_bar.set_speaking(False))
 
-        # LLM status
         signals.llm_status_changed.connect(self.status_bar.set_llm_status)
 
     def _setup_shortcuts(self):
-        """Set up keyboard shortcuts."""
-        # Ctrl+B to toggle sidebar
         toggle_sidebar = QShortcut(QKeySequence("Ctrl+B"), self)
         toggle_sidebar.activated.connect(self.sidebar.toggle)
 
     def _toggle_maximize(self):
-        """Toggle between maximized and normal window state."""
         if self.isMaximized():
             self.showNormal()
             self.title_bar.set_maximized_state(False)
@@ -204,131 +155,101 @@ class MainWindow(QMainWindow):
             self.title_bar.set_maximized_state(True)
 
     def _open_settings(self):
-        """Open the settings panel."""
         dialog = SettingsPanel(self)
         dialog.settings_changed.connect(self._on_settings_changed)
         dialog.exec()
 
     @Slot(dict)
     def _on_settings_changed(self, settings: dict):
-        """Handle settings changes."""
         signals.settings_changed.emit(settings)
 
     @Slot(str)
     def _on_text_submitted(self, text: str):
-        """Handle text input submission."""
         if not text.strip():
             return
-
-        # Add user message to chat
         self.chat_widget.add_message("You", text)
-
-        # Show typing indicator
         self.chat_widget.show_typing()
+        self.input_zone.set_enabled(False)
 
-        # Disable input while processing
-        self.input_bar.set_enabled(False)
-
-        # Process command in thread pool
         worker = CommandWorker(text)
         worker.signals.finished.connect(self._on_command_finished)
         worker.signals.error.connect(self._on_command_error)
         worker.signals.speaking_started.connect(lambda: signals.speaking_started.emit())
         worker.signals.speaking_finished.connect(lambda: signals.speaking_finished.emit())
-
         self.thread_pool.start(worker)
 
     @Slot()
     def _on_voice_button_clicked(self):
-        """Handle voice button click - start listening."""
         self.audio_thread.start_listening()
 
     @Slot(str)
     def _on_speech_recognized(self, text: str):
-        """Handle recognized speech."""
         self._on_text_submitted(text)
 
     @Slot(bool)
     def _on_listening_state_changed(self, is_listening: bool):
-        """Handle listening state changes."""
-        self.input_bar.set_listening_state(is_listening)
+        self.input_zone.on_listening_state_changed(is_listening)
         self.status_bar.set_mic_status(is_listening)
-        if is_listening:
-            self.input_bar.set_placeholder("Listening... Speak now")
-            self.waveform_widget.input_waveform.set_active(True)
-        else:
-            self.input_bar.set_placeholder("Type your message here...")
-            self.waveform_widget.input_waveform.set_active(False)
 
     @Slot(str)
     def _on_audio_error(self, error: str):
-        """Handle audio errors."""
-        self.input_bar.set_listening_state(False)
-        self.input_bar.set_placeholder("Type your message here...")
+        self.input_zone.on_listening_state_changed(False)
         self.status_bar.set_mic_status(False)
         if "timeout" not in error.lower():
             self.chat_widget.add_message("System", f"Audio: {error}")
 
     @Slot(str, str)
     def _on_quick_action(self, action_id: str, command: str):
-        """Handle quick action button click."""
         self.chat_widget.add_message("You", f"[Quick Action: {action_id}]")
         self.chat_widget.show_typing()
-        self.input_bar.set_enabled(False)
+        self.input_zone.set_enabled(False)
         self.quick_actions.highlight_tile(action_id, True)
 
         worker = QuickActionWorker(action_id, command)
         worker.signals.finished.connect(lambda response: self._on_quick_action_finished(action_id, response))
         worker.signals.error.connect(self._on_command_error)
-
         self.thread_pool.start(worker)
 
     @Slot(str, str)
     def _on_response_ready(self, sender: str, response: str):
-        """Handle response from global signals."""
         self.chat_widget.hide_typing()
         self.chat_widget.add_message(sender, response)
-        self.input_bar.set_enabled(True)
-        self.input_bar.focus_input()
+        self.input_zone.set_enabled(True)
+        self.input_zone.focus_input()
 
     @Slot(str)
     def _on_command_finished(self, response: str):
-        """Handle command completion."""
         self.chat_widget.hide_typing()
         self.chat_widget.add_message("A.L.F.R.E.D", response)
-        self.input_bar.set_enabled(True)
-        self.input_bar.focus_input()
-
-        # Update LLM status on success
+        self.input_zone.set_enabled(True)
+        self.input_zone.focus_input()
         signals.llm_status_changed.emit("Claude 3.5 Sonnet", True)
-
         if "powering down" in response.lower():
             self.close()
 
     @Slot(str, str)
     def _on_quick_action_finished(self, action_id: str, response: str):
-        """Handle quick action completion."""
         self.chat_widget.hide_typing()
         self.chat_widget.add_message("A.L.F.R.E.D", response)
-        self.input_bar.set_enabled(True)
+        self.input_zone.set_enabled(True)
         self.quick_actions.highlight_tile(action_id, False)
 
     @Slot(str)
     def _on_command_error(self, error: str):
-        """Handle command errors."""
         self.chat_widget.hide_typing()
         self.chat_widget.add_message("System", f"Error: {error}")
-        self.input_bar.set_enabled(True)
-        self.input_bar.focus_input()
+        self.input_zone.set_enabled(True)
+        self.input_zone.focus_input()
         signals.llm_status_changed.emit("Disconnected", False)
 
     def resizeEvent(self, event):
-        """Position the size grip on resize."""
         super().resizeEvent(event)
-        self._size_grip.move(self.width() - self._size_grip.width() - 4, self.height() - self._size_grip.height() - 4)
+        self._size_grip.move(
+            self.width() - self._size_grip.width() - 4,
+            self.height() - self._size_grip.height() - 4,
+        )
 
     def closeEvent(self, event):
-        """Handle window close event."""
         self.system_monitor_thread.stop()
         self.audio_thread.stop()
         self.thread_pool.waitForDone(3000)
