@@ -90,13 +90,13 @@ All text currently uses `Segoe UI 10pt` with minimal variation. New scale:
 **System dashboard progress bars:**
 - Height: `5px → 3px`
 - Background track: color-matched to stat (CPU: cyan-tinted, RAM: green-tinted, Disk: orange-tinted) at 8% opacity
-- Fill: gradient (`linear-gradient(90deg, primary, dimmed)`) rather than flat color
+- Fill: gradient appearance via a custom `QPainter`-based bar widget (subclass `QWidget`, override `paintEvent`) — Qt's `QProgressBar` ignores gradient fills in QSS on Windows and renders flat
 - Stat values: Consolas 9pt, color-matched to stat
 
 **Quick actions:**
 - Replace 2×2 tile grid with vertical list of rows
 - Each row: icon (14px) + uppercase label (8pt bold, letter-spacing 0.5px)
-- Active/hover state: `border-left: 2px solid #00d4ff` + `background: rgba(0, 212, 255, 0.06)`
+- Active/hover state: `border-left: 2px solid #00d4ff` + `background: rgba(0, 212, 255, 0.06)` — applied instantly via QSS `:hover` (Qt does not support CSS transitions in QSS; no animation)
 - Inactive state: transparent border-left, label at 50% opacity
 
 ### 4.3 Chat Bubbles (`ui/widgets/chat_widget.py`)
@@ -169,7 +169,7 @@ This is the most significant structural change. `InputBar` + `DualWaveformWidget
 - Same expand animation, green palette (`#00cc66`)
 - Waveform bars driven by existing `output_audio_data` signal; falls back to simulated animation via `QTimer` when no real data (pyttsx3 path)
 - Input field: opacity 40%, `setEnabled(False)`
-- Stop button: 34×34px circle, `rgba(0, 204, 102, 0.15)` background, green border, `■` icon
+- Stop button: 34×34px circle, `rgba(0, 204, 102, 0.15)` background, green border, `■` icon — clicking it emits `signals.speaking_finished` to halt TTS playback and return the zone to `IDLE` state
 
 **`main_window.py` changes:**
 - Remove `DualWaveformWidget` import and instantiation
@@ -190,7 +190,7 @@ This is the most significant structural change. `InputBar` + `DualWaveformWidget
 | Input zone expand (listening/speaking) | 200ms | OutCubic | State change |
 | Input zone collapse | 150ms | OutCubic | State returns to IDLE |
 | Typing indicator dot wave | 150ms cycle | Linear (timer) | `show_typing()` called |
-| Quick action hover border | 120ms | Linear (QSS) | Mouse enter/leave |
+| Quick action hover border | instant | QSS :hover | Mouse enter/leave |
 | Status bar label fade on LLM switch | 100ms fade out + 100ms in | Linear | `llm_status_changed` signal |
 
 **Constraint:** No animation exceeds 300ms. No purely decorative animations.
