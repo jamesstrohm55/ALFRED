@@ -10,16 +10,34 @@ from ui.styles.colors import COLORS
 from ui.widgets.system_dashboard import _section_header
 
 QUICK_ACTIONS = [
-    {"id": "system_status", "name": "SYSTEM",   "icon": "📊", "command": "system status",         "tooltip": "Check system health"},
-    {"id": "weather",       "name": "WEATHER",  "icon": "🌤", "command": "what's the weather",     "tooltip": "Get current weather"},
-    {"id": "calendar",      "name": "CALENDAR", "icon": "📅", "command": "what's on my calendar",  "tooltip": "View upcoming events"},
-    {"id": "time",          "name": "TIME",     "icon": "🕐", "command": "tell time",              "tooltip": "Get current time"},
-    {"id": "vscode",        "name": "VS CODE",  "icon": "💻", "command": "open vs code",           "tooltip": "Launch VS Code"},
-    {"id": "browser",       "name": "BROWSER",  "icon": "🌐", "command": "open browser",           "tooltip": "Open web browser"},
-    {"id": "add_event",     "name": "ADD EVENT","icon": "➕", "command": "add event",              "tooltip": "Create calendar event"},
-    {"id": "find_file",     "name": "FIND FILE","icon": "🔍", "command": "find file",              "tooltip": "Search for files"},
-    {"id": "lock",          "name": "LOCK",     "icon": "🔒", "command": "lock computer",          "tooltip": "Lock workstation"},
-    {"id": "music",         "name": "MUSIC",    "icon": "🎵", "command": "play music",             "tooltip": "Play music"},
+    {
+        "id": "system_status",
+        "name": "SYSTEM",
+        "icon": "📊",
+        "command": "system status",
+        "tooltip": "Check system health",
+    },
+    {
+        "id": "weather",
+        "name": "WEATHER",
+        "icon": "🌤",
+        "command": "what's the weather",
+        "tooltip": "Get current weather",
+    },
+    {
+        "id": "calendar",
+        "name": "CALENDAR",
+        "icon": "📅",
+        "command": "what's on my calendar",
+        "tooltip": "View upcoming events",
+    },
+    {"id": "time", "name": "TIME", "icon": "🕐", "command": "tell time", "tooltip": "Get current time"},
+    {"id": "vscode", "name": "VS CODE", "icon": "💻", "command": "open vs code", "tooltip": "Launch VS Code"},
+    {"id": "browser", "name": "BROWSER", "icon": "🌐", "command": "open browser", "tooltip": "Open web browser"},
+    {"id": "add_event", "name": "ADD EVENT", "icon": "➕", "command": "add event", "tooltip": "Create calendar event"},
+    {"id": "find_file", "name": "FIND FILE", "icon": "🔍", "command": "find file", "tooltip": "Search for files"},
+    {"id": "lock", "name": "LOCK", "icon": "🔒", "command": "lock computer", "tooltip": "Lock workstation"},
+    {"id": "music", "name": "MUSIC", "icon": "🎵", "command": "play music", "tooltip": "Play music"},
 ]
 
 _IDLE_STYLE = f"""

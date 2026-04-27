@@ -46,8 +46,8 @@ class MetricPanel(QFrame):
     """Individual metric panel: label, value, gradient bar, and history chart."""
 
     _BAR_COLORS = {
-        "CPU":  ("#00d4ff", "#0055aa"),
-        "RAM":  ("#00cc66", "#005533"),
+        "CPU": ("#00d4ff", "#0055aa"),
+        "RAM": ("#00cc66", "#005533"),
         "DISK": ("#ff8800", "#883300"),
     }
 
@@ -77,9 +77,7 @@ class MetricPanel(QFrame):
 
         self.name_label = QLabel(self._name)
         self.name_label.setFont(QFont("Segoe UI", 7))
-        self.name_label.setStyleSheet(
-            "color: rgba(255,255,255,0.4); letter-spacing: 1px; background: transparent;"
-        )
+        self.name_label.setStyleSheet("color: rgba(255,255,255,0.4); letter-spacing: 1px; background: transparent;")
 
         self.value_label = QLabel(f"0{self._unit}")
         self.value_label.setFont(QFont("Consolas", 9, QFont.Bold))

@@ -58,7 +58,7 @@ class CustomTitleBar(QWidget):
         # Status dot
         status = QLabel("● ONLINE")
         status.setFont(QFont("Segoe UI", 7))
-        status.setStyleSheet(f"color: rgba(0, 212, 255, 0.45); background: transparent;")
+        status.setStyleSheet("color: rgba(0, 212, 255, 0.45); background: transparent;")
 
         # Settings button
         self.settings_btn = QPushButton()
@@ -104,14 +104,14 @@ class CustomTitleBar(QWidget):
         layout.addWidget(self.max_btn)
         layout.addWidget(self.close_btn)
 
-        self.setStyleSheet(f"""
-            #alfredTitleBar {{
+        self.setStyleSheet("""
+            #alfredTitleBar {
                 background: qlineargradient(
                     x1:0, y1:0, x2:0, y2:1,
                     stop:0 #141428, stop:1 #0f0f20
                 );
                 border-bottom: 1px solid rgba(0, 212, 255, 0.15);
-            }}
+            }
         """)
 
     def _style_control_btn(self, btn: QPushButton, hover_red: bool):

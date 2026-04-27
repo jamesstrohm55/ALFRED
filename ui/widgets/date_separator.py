@@ -8,8 +8,6 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QWidget
 
-from ui.styles.colors import COLORS
-
 
 class DateSeparator(QWidget):
     """Horizontal line with centered date label for message grouping."""

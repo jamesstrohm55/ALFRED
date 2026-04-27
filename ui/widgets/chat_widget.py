@@ -171,14 +171,10 @@ class ChatBubble(QFrame):
         sender_label.setFont(QFont("Segoe UI", 7, QFont.Bold))
         sender_label.setStyleSheet("background: transparent;")
         if self.is_user:
-            sender_label.setStyleSheet(
-                "color: rgba(255,255,255,0.35); background: transparent; letter-spacing: 2px;"
-            )
+            sender_label.setStyleSheet("color: rgba(255,255,255,0.35); background: transparent; letter-spacing: 2px;")
             sender_label.setAlignment(Qt.AlignRight)
         else:
-            sender_label.setStyleSheet(
-                "color: rgba(0, 212, 255, 0.55); background: transparent; letter-spacing: 2px;"
-            )
+            sender_label.setStyleSheet("color: rgba(0, 212, 255, 0.55); background: transparent; letter-spacing: 2px;")
             sender_label.setAlignment(Qt.AlignLeft)
 
         # Message content
@@ -308,10 +304,8 @@ class TypingIndicator(QFrame):
     def _animate(self):
         self._phase = (self._phase + 1) % 3
         opacities = self._OPACITIES[self._phase]
-        for dot, opacity in zip(self._dot_labels, opacities):
-            dot.setStyleSheet(
-                f"color: rgba(0, 212, 255, {opacity}); background: transparent;"
-            )
+        for dot, opacity in zip(self._dot_labels, opacities, strict=False):
+            dot.setStyleSheet(f"color: rgba(0, 212, 255, {opacity}); background: transparent;")
 
     def start(self):
         self._timer.start(150)
