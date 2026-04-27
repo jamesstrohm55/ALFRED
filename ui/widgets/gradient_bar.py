@@ -3,7 +3,6 @@ Custom QPainter-based gradient progress bar.
 Qt's QProgressBar ignores gradient fills on Windows — this replaces it.
 """
 
-from PySide6.QtCore import Qt
 from PySide6.QtGui import QBrush, QColor, QLinearGradient, QPainter
 from PySide6.QtWidgets import QWidget
 

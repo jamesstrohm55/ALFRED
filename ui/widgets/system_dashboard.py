@@ -34,7 +34,7 @@ def _section_header(text: str) -> QWidget:
 
     label = QLabel(text)
     label.setFont(QFont("Segoe UI", 7, QFont.Bold))
-    label.setStyleSheet(f"color: rgba(0, 212, 255, 0.7); letter-spacing: 2px; background: transparent;")
+    label.setStyleSheet("color: rgba(0, 212, 255, 0.7); letter-spacing: 2px; background: transparent;")
 
     layout.addWidget(bar)
     layout.addWidget(label)
@@ -78,7 +78,7 @@ class MetricPanel(QFrame):
         self.name_label = QLabel(self._name)
         self.name_label.setFont(QFont("Segoe UI", 7))
         self.name_label.setStyleSheet(
-            f"color: rgba(255,255,255,0.4); letter-spacing: 1px; background: transparent;"
+            "color: rgba(255,255,255,0.4); letter-spacing: 1px; background: transparent;"
         )
 
         self.value_label = QLabel(f"0{self._unit}")
