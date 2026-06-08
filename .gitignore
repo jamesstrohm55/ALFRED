@@ -9,3 +9,7 @@ command_log.txt
 .claude/
 logs/.superpowers/
 .worktrees/
+.superpowers/
+.ruff_cache/
+.pytest_cache/
+.vscode/
